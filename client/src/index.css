@@ -86,71 +86,71 @@
 }
 
 .dark {
-  /* Background principal - tom rico e moderno */
-  --background: hsl(218 23% 8%);
-  --foreground: hsl(213 31% 91%);
+  /* Background principal inspirado no Google Material Design - mais confortável */
+  --background: hsl(220 14% 7%);
+  --foreground: hsl(213 27% 84%);
   
-  /* Cards com elevação visual clara */
-  --card: hsl(217 19% 12%);
-  --card-foreground: hsl(213 31% 91%);
+  /* Cards com elevação sutil mas visível */
+  --card: hsl(220 13% 9%);
+  --card-foreground: hsl(213 27% 84%);
   
-  /* Popover com mais contraste */
-  --popover: hsl(217 19% 12%);
-  --popover-foreground: hsl(213 31% 91%);
+  /* Popover com mais destaque */
+  --popover: hsl(220 13% 11%);
+  --popover-foreground: hsl(213 27% 84%);
   
-  /* Cores primárias - azul vibrante mantendo identidade */
-  --primary: hsl(217 91% 65%);
+  /* Cores primárias - azul dessaturado mas vibrante */
+  --primary: hsl(217 32% 58%);
   --primary-50: hsl(213 100% 97%);
   --primary-100: hsl(214 95% 93%);
-  --primary-500: hsl(217 91% 65%);
-  --primary-600: hsl(217 91% 60%);
-  --primary-700: hsl(221 83% 53%);
-  --primary-foreground: hsl(218 23% 8%);
+  --primary-500: hsl(217 32% 58%);
+  --primary-600: hsl(217 28% 52%);
+  --primary-700: hsl(217 24% 46%);
+  --primary-foreground: hsl(220 14% 7%);
   
-  /* Verde vibrante para ações positivas */
-  --secondary: hsl(142 71% 55%);
+  /* Verde dessaturado para ações positivas */
+  --secondary: hsl(142 25% 45%);
   --secondary-50: hsl(138 76% 97%);
   --secondary-100: hsl(141 84% 93%);
-  --secondary-500: hsl(142 71% 55%);
-  --secondary-600: hsl(142 71% 45%);
-  --secondary-foreground: hsl(218 23% 8%);
+  --secondary-500: hsl(142 25% 45%);
+  --secondary-600: hsl(142 22% 38%);
+  --secondary-foreground: hsl(220 14% 7%);
   
-  /* Accent teal mais vibrante */
-  --accent: hsl(172 70% 58%);
+  /* Accent teal suave */
+  --accent: hsl(172 22% 42%);
   --accent-100: hsl(172 85% 94%);
-  --accent-500: hsl(172 70% 58%);
-  --accent-600: hsl(172 66% 50%);
-  --accent-foreground: hsl(218 23% 8%);
+  --accent-500: hsl(172 22% 42%);
+  --accent-600: hsl(172 20% 36%);
+  --accent-foreground: hsl(220 14% 7%);
   
-  /* Elementos sutis com melhor contraste */
-  --muted: hsl(217 19% 18%);
-  --muted-foreground: hsl(215 13% 65%);
+  /* Elementos intermediários com hierarquia clara */
+  --muted: hsl(220 12% 15%);
+  --muted-foreground: hsl(213 12% 52%);
   
-  /* Elementos de interação mais visíveis */
-  --border: hsl(217 19% 18%);
-  --input: hsl(217 19% 15%);
-  --ring: hsl(217 91% 65%);
+  /* Elementos de interação sutis */
+  --border: hsl(220 12% 15%);
+  --input: hsl(220 13% 11%);
+  --ring: hsl(217 32% 58%);
   
-  /* Charts com cores balanceadas */
-  --chart-1: hsl(217 91% 65%);
-  --chart-2: hsl(142 71% 55%);
-  --chart-3: hsl(45 93% 68%);
-  --chart-4: hsl(172 70% 58%);
-  --chart-5: hsl(341 75% 61%);
+  /* Charts com cores dessaturadas harmonizadas */
+  --chart-1: hsl(217 32% 58%);
+  --chart-2: hsl(142 25% 45%);
+  --chart-3: hsl(45 28% 52%);
+  --chart-4: hsl(172 22% 42%);
+  --chart-5: hsl(341 24% 46%);
   
-  /* Sidebar com hierarquia visual */
-  --sidebar: hsl(217 19% 10%);
-  --sidebar-foreground: hsl(213 31% 91%);
-  --sidebar-primary: hsl(217 91% 65%);
-  --sidebar-primary-foreground: hsl(218 23% 8%);
-  --sidebar-accent: hsl(217 19% 18%);
-  --sidebar-accent-foreground: hsl(217 91% 65%);
-  --sidebar-border: hsl(217 19% 18%);
-  --sidebar-ring: hsl(217 91% 65%);
+  /* Sidebar com separação visual clara */
+  --sidebar: hsl(220 13% 8%);
+  --sidebar-foreground: hsl(213 27% 84%);
+  --sidebar-primary: hsl(217 32% 58%);
+  --sidebar-primary-foreground: hsl(220 14% 7%);
+  --sidebar-accent: hsl(220 12% 15%);
+  --sidebar-accent-foreground: hsl(217 32% 58%);
+  --sidebar-border: hsl(220 12% 15%);
+  --sidebar-ring: hsl(217 32% 58%);
   
-  /* Destrutivo com melhor visibilidade */
-  --destructive: hsl(0 84% 68%);
-  --destructive-foreground: hsl(218 23% 8%);
+  /* Destrutivo suave mas visível */
+  --destructive: hsl(0 32% 52%);
+  --destructive-foreground: hsl(213 27% 84%);
   --sidebar-border: hsl(205.7143 15.7895% 26.0784%);
   --sidebar-ring: hsl(202.8169 89.1213% 53.1373%);
   --font-sans: 'Inter', sans-serif;
