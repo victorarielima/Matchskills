@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { GraduationCap, Users, Send } from "lucide-react";
+import { GraduationCap, Users, Send, ArrowLeft } from "lucide-react";
 import type { Class, FormQuestion } from "@shared/schema";
 
 const submitFormSchema = z.object({
@@ -162,9 +162,20 @@ export default function StudentForm() {
 
         {/* Student Form */}
         <Card className="border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Formulário de Avaliação</h2>
-            <p className="text-sm text-gray-600 mt-1">Todas as perguntas marcadas com * são obrigatórias</p>
+          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Formulário de Avaliação</h2>
+              <p className="text-sm text-gray-600 mt-1">Todas as perguntas marcadas com * são obrigatórias</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocation("/")}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Voltar
+            </Button>
           </div>
           
           <CardContent className="p-6">
@@ -214,7 +225,7 @@ export default function StudentForm() {
                   {question.type === "text" && (
                     <Input
                       {...form.register(`responses.${question.id}`)}
-                      required={question.isRequired}
+                      required={!!question.isRequired}
                     />
                   )}
                   
@@ -222,7 +233,7 @@ export default function StudentForm() {
                     <Textarea
                       {...form.register(`responses.${question.id}`)}
                       rows={4}
-                      required={question.isRequired}
+                      required={!!question.isRequired}
                     />
                   )}
                   
@@ -265,15 +276,26 @@ export default function StudentForm() {
               ))}
 
               {/* Submit Button */}
-              <div className="pt-6 border-t border-gray-200">
-                <Button
-                  type="submit"
-                  className="w-full bg-primary hover:bg-primary-600 text-lg py-3"
-                  disabled={submitFormMutation.isPending}
-                >
-                  <Send className="mr-2 h-5 w-5" />
-                  {submitFormMutation.isPending ? "Enviando..." : "Enviar Respostas"}
-                </Button>
+              <div className="pt-6 border-t border-gray-200 space-y-3">
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setLocation("/")}
+                    className="flex-1"
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 bg-primary hover:bg-primary-600 text-lg py-3"
+                    disabled={submitFormMutation.isPending}
+                  >
+                    <Send className="mr-2 h-5 w-5" />
+                    {submitFormMutation.isPending ? "Enviando..." : "Enviar Respostas"}
+                  </Button>
+                </div>
                 <p className="text-xs text-gray-500 mt-2 text-center">
                   Suas respostas serão enviadas de forma anônima para análise do professor
                 </p>

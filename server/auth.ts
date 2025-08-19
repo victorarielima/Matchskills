@@ -8,40 +8,17 @@ import createMemoryStore from "memorystore";
 import { storage } from "./storage";
 import { loginUserSchema, registerUserSchema } from "@shared/schema";
 import type { User } from "@shared/schema";
+import bcrypt from "bcrypt";
 
 const scryptAsync = promisify(scrypt);
 
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
-}
-
 async function comparePasswords(supplied: string, stored: string) {
   try {
-    // For mock data (plain text passwords), compare directly
-    if (!stored || !stored.includes(".")) {
-      return supplied === stored;
-    }
-    
-    // For hashed passwords
-    const parts = stored.split(".");
-    if (parts.length !== 2) {
-      return supplied === stored; // Fallback to plain text comparison
-    }
-    
-    const [hashed, salt] = parts;
-    if (!hashed || !salt) {
-      return supplied === stored; // Fallback to plain text comparison
-    }
-    
-    const hashedBuf = Buffer.from(hashed, "hex");
-    const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-    return timingSafeEqual(hashedBuf, suppliedBuf);
+    // Use bcrypt to compare passwords
+    return await bcrypt.compare(supplied, stored);
   } catch (error) {
     console.error("Password comparison error:", error);
-    // Fallback to simple comparison for mock data
-    return supplied === stored;
+    return false;
   }
 }
 
@@ -78,8 +55,8 @@ export function setupAuth(app: Express) {
             return done(null, false, { message: "Email ou senha inválidos" });
           }
           
-          // Simple password comparison for mock data
-          const passwordMatch = password === user.password;
+          // Use bcrypt to compare passwords
+          const passwordMatch = await comparePasswords(password, user.password);
           
           if (!passwordMatch) {
             return done(null, false, { message: "Email ou senha inválidos" });
@@ -115,12 +92,8 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Este email já está em uso" });
       }
 
-      // Hash password and create user
-      const hashedPassword = await hashPassword(userData.password);
-      const user = await storage.createUser({
-        ...userData,
-        password: hashedPassword,
-      });
+      // Create user (password hashing is handled in storage)
+      const user = await storage.createUser(userData);
 
       req.login(user, (err) => {
         if (err) return next(err);

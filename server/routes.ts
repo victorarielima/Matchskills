@@ -40,6 +40,55 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.put('/api/classes/:classId', requireAuth, async (req: any, res) => {
+    try {
+      const { classId } = req.params;
+      const teacherId = req.user.id;
+      
+      // Verify ownership
+      const existingClass = await storage.getClassById(classId);
+      if (!existingClass || existingClass.teacherId !== teacherId) {
+        return res.status(404).json({ message: "Class not found or access denied" });
+      }
+
+      // Check if this is a full update (has classData and questions) or partial update
+      if (req.body.classData && req.body.questions) {
+        // Full update from create-class page
+        const classData = insertClassSchema.parse(req.body.classData);
+        const questions = z.array(insertFormQuestionSchema).parse(req.body.questions);
+        
+        // Update class
+        const updatedClass = await storage.updateClass(classId, classData);
+        
+        // Update questions
+        await storage.updateFormQuestions(classId, questions);
+
+        res.json(updatedClass);
+      } else {
+        // Partial update (name, isActive, etc.)
+        const allowedFields = ['name', 'isActive', 'studentLimit', 'groupCount'];
+        const updateData: Partial<any> = {};
+        
+        for (const field of allowedFields) {
+          if (req.body[field] !== undefined) {
+            updateData[field] = req.body[field];
+          }
+        }
+
+        if (Object.keys(updateData).length === 0) {
+          return res.status(400).json({ message: "No valid fields to update" });
+        }
+
+        // Update class with partial data
+        const updatedClass = await storage.updateClass(classId, updateData);
+        res.json(updatedClass);
+      }
+    } catch (error) {
+      console.error("Error updating class:", error);
+      res.status(500).json({ message: "Failed to update class" });
+    }
+  });
+
   app.get('/api/classes/:classId', requireAuth, async (req: any, res) => {
     try {
       const { classId } = req.params;
@@ -209,6 +258,28 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error submitting response:", error);
       res.status(500).json({ message: "Failed to submit response" });
+    }
+  });
+
+  // DELETE route for classes
+  app.delete('/api/classes/:classId', requireAuth, async (req: any, res) => {
+    try {
+      const { classId } = req.params;
+      const teacherId = req.user.id;
+      
+      // Verify ownership
+      const existingClass = await storage.getClassById(classId);
+      if (!existingClass || existingClass.teacherId !== teacherId) {
+        return res.status(404).json({ message: "Class not found or access denied" });
+      }
+
+      // Delete class and all associated data
+      await storage.deleteClass(classId);
+      
+      res.json({ message: "Class deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting class:", error);
+      res.status(500).json({ message: "Failed to delete class" });
     }
   });
 

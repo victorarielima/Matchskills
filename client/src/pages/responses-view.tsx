@@ -7,9 +7,9 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Nav from "@/components/ui/nav";
-import { ArrowLeft, Download, Filter, SortAsc, BarChart3, Users, FileText, Clock, X } from "lucide-react";
+import { ArrowLeft, Download, Filter, SortAsc, BarChart3, Users, FileText, Clock } from "lucide-react";
 import type { FormResponse, FormQuestion } from "@shared/schema";
 
 export default function ResponsesView() {
@@ -94,7 +94,7 @@ export default function ResponsesView() {
 
   const renderResponseValue = (question: FormQuestion, value: any) => {
     if (!value) {
-      return <span className="text-gray-400 italic">Não respondida</span>;
+      return <span className="text-muted-foreground italic">Não respondida</span>;
     }
 
     switch (question.type) {
@@ -110,7 +110,7 @@ export default function ResponsesView() {
             </div>
           );
         }
-        return <span className="text-gray-400 italic">Resposta inválida</span>;
+        return <span className="text-muted-foreground italic">Resposta inválida</span>;
       
       case 'radio':
         return <span className="font-medium">{value}</span>;
@@ -119,7 +119,7 @@ export default function ResponsesView() {
         return (
           <div className="flex items-center gap-2">
             <span className="font-medium text-lg">{value}</span>
-            <span className="text-gray-500 text-sm">
+            <span className="text-muted-foreground text-sm">
               (de {question.scaleMin} a {question.scaleMax})
             </span>
           </div>
@@ -128,8 +128,8 @@ export default function ResponsesView() {
       case 'text':
       case 'textarea':
         return (
-          <div className="bg-gray-50 rounded-md p-3 border">
-            <p className="text-gray-900 whitespace-pre-wrap">{value}</p>
+          <div className="bg-muted/50 rounded-md p-3 border border-border">
+            <p className="text-foreground whitespace-pre-wrap">{value}</p>
           </div>
         );
       
@@ -143,15 +143,15 @@ export default function ResponsesView() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
       <Nav />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Respostas da Turma</h1>
-              <p className="text-gray-600 mt-1">Respostas coletadas do formulário</p>
+              <h1 className="text-3xl font-bold text-foreground">Respostas da Turma</h1>
+              <p className="text-muted-foreground mt-1">Respostas coletadas do formulário</p>
             </div>
             <div className="flex space-x-3">
               <Button variant="outline" className="bg-secondary hover:bg-secondary-600 text-white border-secondary">
@@ -168,33 +168,33 @@ export default function ResponsesView() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="border border-gray-200">
+          <Card className="border-border bg-card">
             <CardContent className="pt-6 text-center">
               <p className="text-2xl font-bold text-primary">{responses.length}</p>
-              <p className="text-sm text-gray-600">Total de Respostas</p>
+              <p className="text-sm text-muted-foreground">Total de Respostas</p>
             </CardContent>
           </Card>
           
-          <Card className="border border-gray-200">
+          <Card className="border-border bg-card">
             <CardContent className="pt-6 text-center">
               <p className="text-2xl font-bold text-secondary">-</p>
-              <p className="text-sm text-gray-600">Taxa de Conclusão</p>
+              <p className="text-sm text-muted-foreground">Taxa de Conclusão</p>
             </CardContent>
           </Card>
           
-          <Card className="border border-gray-200">
+          <Card className="border-border bg-card">
             <CardContent className="pt-6 text-center">
               <p className="text-2xl font-bold text-accent">-</p>
-              <p className="text-sm text-gray-600">Média Geral</p>
+              <p className="text-sm text-muted-foreground">Média Geral</p>
             </CardContent>
           </Card>
           
-          <Card className="border border-gray-200">
+          <Card className="border-border bg-card">
             <CardContent className="pt-6 text-center">
-              <p className="text-2xl font-bold text-gray-700">
+              <p className="text-2xl font-bold text-muted-foreground">
                 {responses.length > 0 ? getTimeAgo(responses[0].submittedAt!) : "-"}
               </p>
-              <p className="text-sm text-gray-600">Última Resposta</p>
+              <p className="text-sm text-muted-foreground">Última Resposta</p>
             </CardContent>
           </Card>
         </div>
@@ -203,7 +203,7 @@ export default function ResponsesView() {
         <Card className="border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Todas as Respostas</h2>
+              <h2 className="text-lg font-semibold text-foreground">Todas as Respostas</h2>
               <div className="flex space-x-2">
                 <Button variant="ghost" size="sm">
                   <Filter className="h-4 w-4" />
@@ -220,49 +220,49 @@ export default function ResponsesView() {
               <div className="text-center py-8">Carregando respostas...</div>
             ) : responses.length === 0 ? (
               <div className="text-center py-8">
-                <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma resposta ainda</h3>
-                <p className="text-gray-600">As respostas dos alunos aparecerão aqui</p>
+                <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">Nenhuma resposta ainda</h3>
+                <p className="text-muted-foreground">As respostas dos alunos aparecerão aqui</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-muted/50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Aluno
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Respostas
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Data
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Ações
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-card divide-y divide-border">
                     {responses.map((response, index) => {
                       const gradientColors = ['primary', 'secondary', 'accent'];
                       const colorClass = gradientColors[index % gradientColors.length];
                       
                       return (
-                        <tr key={response.id} className="hover:bg-gray-50">
+                        <tr key={response.id} className="hover:bg-muted/30 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
-                              <div className={`h-8 w-8 rounded-full bg-${colorClass}-100 flex items-center justify-center`}>
-                                <span className={`text-sm font-medium text-${colorClass}-600`}>
+                              <div className={`h-8 w-8 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center`}>
+                                <span className={`text-sm font-medium text-primary`}>
                                   {getInitials(response.studentName)}
                                 </span>
                               </div>
                               <div className="ml-3">
-                                <div className="text-sm font-medium text-gray-900">
+                                <div className="text-sm font-medium text-foreground">
                                   {response.studentName}
                                 </div>
                                 {response.studentEmail && (
-                                  <div className="text-sm text-gray-500">
+                                  <div className="text-sm text-muted-foreground">
                                     {response.studentEmail}
                                   </div>
                                 )}
@@ -270,11 +270,11 @@ export default function ResponsesView() {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
+                            <div className="text-sm text-foreground">
                               {Object.keys(response.responses as object).length} respostas
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                             {getTimeAgo(response.submittedAt!)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -301,42 +301,34 @@ export default function ResponsesView() {
       <Dialog open={!!selectedResponseId} onOpenChange={closeResponseDetails}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>Detalhes da Resposta</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={closeResponseDetails}
-                className="h-6 w-6 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+            <DialogTitle>
+              Detalhes da Resposta
             </DialogTitle>
           </DialogHeader>
           
           {responseDetailsLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-              <p className="mt-2 text-gray-600">Carregando detalhes...</p>
+              <p className="mt-2 text-muted-foreground">Carregando detalhes...</p>
             </div>
           ) : responseDetails ? (
             <div className="space-y-6">
               {/* Student Info */}
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-muted/50 rounded-lg p-4 border border-border">
                 <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-primary-100 flex items-center justify-center">
-                    <span className="text-lg font-medium text-primary-600">
+                  <div className="h-12 w-12 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+                    <span className="text-lg font-medium text-primary">
                       {getInitials(responseDetails.studentName)}
                     </span>
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
+                    <h3 className="text-lg font-semibold text-foreground">
                       {responseDetails.studentName}
                     </h3>
                     {responseDetails.studentEmail && (
-                      <p className="text-gray-600">{responseDetails.studentEmail}</p>
+                      <p className="text-muted-foreground">{responseDetails.studentEmail}</p>
                     )}
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       Respondido {getTimeAgo(responseDetails.submittedAt!)}
                     </p>
                   </div>
@@ -345,7 +337,7 @@ export default function ResponsesView() {
 
               {/* Responses */}
               <div className="space-y-4">
-                <h4 className="text-lg font-semibold text-gray-900">Respostas</h4>
+                <h4 className="text-lg font-semibold text-foreground">Respostas</h4>
                 {responseDetails.questions?.map((question) => {
                   const responseValue = (responseDetails.responses as Record<string, any>)[question.id];
                   return (
@@ -353,7 +345,7 @@ export default function ResponsesView() {
                       <CardContent className="pt-4">
                         <div className="space-y-3">
                           <div className="flex items-start justify-between">
-                            <h5 className="font-medium text-gray-900 flex-1">
+                            <h5 className="font-medium text-foreground flex-1">
                               {question.question}
                             </h5>
                             <Badge variant="outline" className="ml-2">
@@ -362,8 +354,8 @@ export default function ResponsesView() {
                           </div>
                           
                           <div className="pt-2 border-t border-gray-100">
-                            <div className="text-sm text-gray-500 mb-1">Resposta:</div>
-                            <div className="text-gray-900">
+                            <div className="text-sm text-muted-foreground mb-1">Resposta:</div>
+                            <div className="text-foreground">
                               {renderResponseValue(question, responseValue)}
                             </div>
                           </div>
@@ -376,9 +368,15 @@ export default function ResponsesView() {
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-600">Erro ao carregar detalhes da resposta.</p>
+              <p className="text-muted-foreground">Erro ao carregar detalhes da resposta.</p>
             </div>
           )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={closeResponseDetails}>
+              Fechar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

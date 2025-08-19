@@ -133,7 +133,7 @@ export default function QuestionEditor({ question, index, onChange, onRemove }: 
         <div className="flex items-center space-x-4">
           <label className="flex items-center space-x-2">
             <Checkbox
-              checked={question.isRequired}
+              checked={!!question.isRequired}
               onCheckedChange={(checked) => updateQuestion('isRequired', checked)}
             />
             <span className="text-sm text-gray-700">Obrigatória</span>
