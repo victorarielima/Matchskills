@@ -1,0 +1,45 @@
+# Arquivos excluídos do deployment Azure
+
+# Development files
+temp-page.html
+replit.md
+replit.nix
+.replit
+
+# Git files
+.git/
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+logs/
+*.log
+
+# Cache
+.cache/
+.npm/
+.eslintcache
+
+# Test files
+test/
+tests/
+__tests__/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+
+# Coverage
+coverage/
+
+# Temporary
+tmp/
+temp/
+.tmp/
