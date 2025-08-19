@@ -20,8 +20,8 @@ out/
 # Azure specific files
 .azure/
 azure-pipelines.yml
-.deployment
-deploy.cmd
+# .deployment - comentado para incluir no deploy
+# deploy.cmd - comentado para incluir no deploy
 
 # Database files (se usando SQLite local)
 *.db
