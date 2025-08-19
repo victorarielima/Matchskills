@@ -32,6 +32,7 @@ export default function CreateClass() {
   const { classId } = useParams<{ classId?: string }>();
   const queryClient = useQueryClient();
   const [questions, setQuestions] = useState<InsertFormQuestion[]>([]);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   
   const isEditMode = !!classId;
 
@@ -59,6 +60,56 @@ export default function CreateClass() {
       return;
     }
   }, [isAuthenticated, isLoading, toast]);
+
+  // Dark mode detection
+  useEffect(() => {
+    const checkDarkMode = () => {
+      const html = document.documentElement;
+      const isDark = html.classList.contains('dark') || 
+                     window.getComputedStyle(html).colorScheme === 'dark' ||
+                     window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setIsDarkMode(isDark);
+    };
+
+    checkDarkMode();
+
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class', 'data-theme'],
+    });
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', checkDarkMode);
+
+    return () => {
+      observer.disconnect();
+      mediaQuery.removeEventListener('change', checkDarkMode);
+    };
+  }, []);
+
+  // Glow effect function
+  const getGlowStyle = (color: string = '#3b82f6') => {
+    if (!isDarkMode) return {};
+    
+    return {
+      textShadow: `0 0 10px ${color}40, 0 0 20px ${color}30, 0 0 30px ${color}20`,
+      transition: 'text-shadow 0.3s ease-in-out',
+    };
+  };
+
+  // Button glow style function
+  const getButtonStyle = () => {
+    if (!isDarkMode) return {};
+    
+    return {
+      backgroundColor: '#9741E7',
+      borderColor: '#9741E7',
+      color: 'white',
+      boxShadow: `0 0 10px #9741E740, 0 0 20px #9741E730, 0 0 30px #9741E720`,
+      transition: 'all 0.3s ease-in-out',
+    };
+  };
 
   // Load class data for editing
   const { data: classData } = useQuery<Class>({
@@ -161,14 +212,14 @@ export default function CreateClass() {
       <Nav />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <Card>
+          <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 transition-colors duration-200">
             <CardContent className="p-8">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white" style={getGlowStyle('#3b82f6')}>
                     {isEditMode ? 'Editar Turma' : 'Criar Nova Turma'}
                   </h1>
-                  <p className="text-gray-600 mt-2">
+                  <p className="text-gray-600 dark:text-gray-300 mt-2" style={isDarkMode ? getGlowStyle('#64748b') : {}}>
                     {isEditMode 
                       ? 'Atualize as informações da sua turma e formulário de avaliação'
                       : 'Configure sua turma e crie um formulário de avaliação personalizado'
@@ -178,6 +229,7 @@ export default function CreateClass() {
                 <Button
                   variant="outline"
                   onClick={() => setLocation("/")}
+                  style={getButtonStyle()}
                 >
                   <X className="mr-2 h-4 w-4" />
                   Cancelar
@@ -187,7 +239,7 @@ export default function CreateClass() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                 {/* Basic Class Information */}
                 <div className="space-y-6">
-                  <h2 className="text-xl font-semibold text-gray-900">Informações da Turma</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white" style={getGlowStyle('#10b981')}>Informações da Turma</h2>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
@@ -195,6 +247,7 @@ export default function CreateClass() {
                       <Input
                         id="name"
                         placeholder="Ex: Avaliação de Competências - Marketing"
+                        className="bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
                         {...form.register("name")}
                       />
                       {form.formState.errors.name && (
@@ -209,6 +262,7 @@ export default function CreateClass() {
                         type="number"
                         min="1"
                         max="200"
+                        className="bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
                         {...form.register("studentLimit", { valueAsNumber: true })}
                       />
                       {form.formState.errors.studentLimit && (
@@ -223,6 +277,7 @@ export default function CreateClass() {
                         type="number"
                         min="1"
                         max="20"
+                        className="bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
                         {...form.register("groupCount", { valueAsNumber: true })}
                       />
                       {form.formState.errors.groupCount && (
@@ -239,7 +294,7 @@ export default function CreateClass() {
                           {...form.register("isActive")}
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
-                        <Label htmlFor="isActive" className="text-sm text-gray-600">
+                        <Label htmlFor="isActive" className="text-sm text-gray-600 dark:text-gray-300" style={isDarkMode ? getGlowStyle('#f59e0b') : {}}>
                           Turma ativa (permite receber respostas)
                         </Label>
                       </div>
@@ -250,7 +305,7 @@ export default function CreateClass() {
                 {/* Form Builder */}
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold text-gray-900">Formulário de Avaliação</h2>
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white" style={getGlowStyle('#8b5cf6')}>Formulário de Avaliação</h2>
                     <Button
                       type="button"
                       variant="outline"
@@ -260,6 +315,7 @@ export default function CreateClass() {
                         order: questions.length + 1,
                         isRequired: false,
                       }])}
+                      style={getButtonStyle()}
                     >
                       <Plus className="mr-2 h-4 w-4" />
                       Adicionar Pergunta
@@ -272,10 +328,10 @@ export default function CreateClass() {
                   />
 
                   {questions.length === 0 && (
-                    <div className="text-center py-12 text-gray-500">
-                      <FileText className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-                      <p>Nenhuma pergunta adicionada ainda.</p>
-                      <p className="text-sm">Clique em "Adicionar Pergunta" para começar.</p>
+                    <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                      <FileText className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-500 mb-4" />
+                      <p style={isDarkMode ? getGlowStyle('#6b7280') : {}}>Nenhuma pergunta adicionada ainda.</p>
+                      <p className="text-sm" style={isDarkMode ? getGlowStyle('#6b7280') : {}}>Clique em "Adicionar Pergunta" para começar.</p>
                     </div>
                   )}
                 </div>
@@ -286,12 +342,14 @@ export default function CreateClass() {
                     type="button"
                     variant="outline"
                     onClick={() => setLocation("/")}
+                    style={getButtonStyle()}
                   >
                     Cancelar
                   </Button>
                   <Button
                     type="submit"
                     disabled={createClassMutation.isPending}
+                    style={getButtonStyle()}
                   >
                     {createClassMutation.isPending 
                       ? (isEditMode ? "Atualizando..." : "Criando...")

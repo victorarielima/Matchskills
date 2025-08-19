@@ -21,6 +21,17 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.get('/api/classes/response-counts', requireAuth, async (req: any, res) => {
+    try {
+      const teacherId = req.user.id;
+      const counts = await storage.getResponseCountsByTeacher(teacherId);
+      res.json(counts);
+    } catch (error) {
+      console.error("Error fetching response counts:", error);
+      res.status(500).json({ message: "Failed to fetch response counts" });
+    }
+  });
+
   app.post('/api/classes', requireAuth, async (req: any, res) => {
     try {
       const teacherId = req.user.id;
@@ -190,6 +201,31 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error updating class status:", error);
       res.status(500).json({ message: "Failed to update class status" });
+    }
+  });
+
+  app.patch('/api/classes/:classId/color', requireAuth, async (req: any, res) => {
+    try {
+      const { classId } = req.params;
+      const { colorIndex } = req.body;
+      const teacherId = req.user.id;
+      
+      // Verify teacher owns this class
+      const classData = await storage.getClassById(classId);
+      if (!classData || classData.teacherId !== teacherId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Validate colorIndex
+      if (typeof colorIndex !== 'number' || colorIndex < 0 || colorIndex > 5) {
+        return res.status(400).json({ message: "Invalid color index. Must be between 0 and 5." });
+      }
+
+      const updatedClass = await storage.updateClassColor(classId, colorIndex);
+      res.json(updatedClass);
+    } catch (error) {
+      console.error("Error updating class color:", error);
+      res.status(500).json({ message: "Failed to update class color" });
     }
   });
 

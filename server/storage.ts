@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { db } from "./db.js";
 import {
   users,
@@ -30,6 +30,8 @@ export interface IStorage {
   getClassById(id: string): Promise<Class | undefined>;
   updateClass(id: string, classData: Partial<InsertClass>): Promise<Class>;
   updateClassStatus(id: string, isActive: boolean): Promise<void>;
+  updateClassColor(id: string, colorIndex: number): Promise<Class>;
+  getResponseCountsByTeacher(teacherId: string): Promise<Record<string, number>>;
   deleteClass(id: string): Promise<void>;
   
   // Form question operations
@@ -165,6 +167,57 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error updating class status:', error);
       throw new Error('Failed to update class status');
+    }
+  }
+
+  async updateClassColor(id: string, colorIndex: number): Promise<Class> {
+    try {
+      const result = await db
+        .update(classes)
+        .set({ colorIndex, updatedAt: new Date() })
+        .where(eq(classes.id, id))
+        .returning();
+      
+      if (result.length === 0) {
+        throw new Error('Class not found');
+      }
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error updating class color:', error);
+      throw new Error('Failed to update class color');
+    }
+  }
+
+  async getResponseCountsByTeacher(teacherId: string): Promise<Record<string, number>> {
+    try {
+      // Get all classes for the teacher
+      const teacherClasses = await db
+        .select({ id: classes.id })
+        .from(classes)
+        .where(eq(classes.teacherId, teacherId));
+
+      if (teacherClasses.length === 0) {
+        return {};
+      }
+
+      // Get response counts for each class
+      const classIds = teacherClasses.map(c => c.id);
+      const responseCounts: Record<string, number> = {};
+
+      for (const classId of classIds) {
+        const count = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(formResponses)
+          .where(eq(formResponses.classId, classId));
+        
+        responseCounts[classId] = count[0]?.count || 0;
+      }
+
+      return responseCounts;
+    } catch (error) {
+      console.error('Error getting response counts:', error);
+      return {};
     }
   }
 

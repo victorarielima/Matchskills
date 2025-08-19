@@ -1,0 +1,1 @@
+ALTER TABLE "classes" ADD COLUMN "color_index" integer DEFAULT 0;
