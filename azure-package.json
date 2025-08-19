@@ -1,0 +1,17 @@
+{
+  "name": "ClassConnect",
+  "version": "1.0.0",
+  "description": "Sistema de gestão de turmas e formulários",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "vite build",
+    "build:server": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "postinstall": "npm run build"
+  },
+  "main": "dist/index.js"
+}
