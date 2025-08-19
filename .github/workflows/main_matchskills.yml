@@ -21,7 +21,8 @@ jobs:
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
-          node-version: '22.x'
+          node-version: '18.x'
+          cache: 'npm'
 
       - name: npm install, build, and test
         run: |
@@ -29,11 +30,25 @@ jobs:
           npm run build --if-present
           npm run test --if-present
       
+      - name: Clean up for deployment
+        run: |
+          # Remove node_modules to reduce size
+          rm -rf node_modules
+          # Remove dev files
+          rm -rf .git
+          rm -f temp-page.html
+          rm -f replit.md
+      
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: .
+          path: |
+            .
+            !node_modules
+            !.git
+            !temp-page.html
+            !replit.md
 
   deploy:
     runs-on: ubuntu-latest
@@ -47,6 +62,16 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: node-app
+      
+      - name: Set up Node.js version
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+      
+      - name: 'Install production dependencies'
+        run: |
+          npm ci --production
       
       - name: Login to Azure
         uses: azure/login@v2
@@ -62,4 +87,5 @@ jobs:
           app-name: 'matchskills'
           slot-name: 'Production'
           package: .
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_MATCHSKILLS }}
           
