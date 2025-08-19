@@ -19,6 +19,7 @@ export default function ResponsesView() {
   const isAuthenticated = !!user;
   const [, setLocation] = useLocation();
   const [selectedResponseId, setSelectedResponseId] = useState<string | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -34,6 +35,43 @@ export default function ResponsesView() {
       return;
     }
   }, [isAuthenticated, isLoading, toast]);
+
+  // Dark mode detection
+  useEffect(() => {
+    const checkDarkMode = () => {
+      const html = document.documentElement;
+      const isDark = html.classList.contains('dark') || 
+                     window.getComputedStyle(html).colorScheme === 'dark' ||
+                     window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setIsDarkMode(isDark);
+    };
+
+    checkDarkMode();
+
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class', 'data-theme'],
+    });
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', checkDarkMode);
+
+    return () => {
+      observer.disconnect();
+      mediaQuery.removeEventListener('change', checkDarkMode);
+    };
+  }, []);
+
+  // Glow effect function
+  const getGlowStyle = (color: string = '#3b82f6') => {
+    if (!isDarkMode) return {};
+    
+    return {
+      textShadow: `0 0 10px ${color}40, 0 0 20px ${color}30, 0 0 30px ${color}20`,
+      transition: 'text-shadow 0.3s ease-in-out',
+    };
+  };
 
   const { data: responses = [], isLoading: responsesLoading, error } = useQuery<FormResponse[]>({
     queryKey: ["/api/classes", classId, "responses"],
@@ -150,8 +188,8 @@ export default function ResponsesView() {
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Respostas da Turma</h1>
-              <p className="text-muted-foreground mt-1">Respostas coletadas do formulário</p>
+              <h1 className="text-3xl font-bold text-foreground" style={getGlowStyle('#3b82f6')}>Respostas da Turma</h1>
+              <p className="text-muted-foreground mt-1" style={isDarkMode ? getGlowStyle('#64748b') : {}}>Respostas coletadas do formulário</p>
             </div>
             <div className="flex space-x-3">
               <Button variant="outline" className="bg-secondary hover:bg-secondary-600 text-white border-secondary">
@@ -170,31 +208,31 @@ export default function ResponsesView() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card className="border-border bg-card">
             <CardContent className="pt-6 text-center">
-              <p className="text-2xl font-bold text-primary">{responses.length}</p>
-              <p className="text-sm text-muted-foreground">Total de Respostas</p>
+              <p className="text-2xl font-bold text-primary" style={getGlowStyle('#3b82f6')}>{responses.length}</p>
+              <p className="text-sm text-muted-foreground" style={isDarkMode ? getGlowStyle('#6b7280') : {}}>Total de Respostas</p>
             </CardContent>
           </Card>
           
           <Card className="border-border bg-card">
             <CardContent className="pt-6 text-center">
-              <p className="text-2xl font-bold text-secondary">-</p>
-              <p className="text-sm text-muted-foreground">Taxa de Conclusão</p>
+              <p className="text-2xl font-bold text-secondary" style={getGlowStyle('#10b981')}>-</p>
+              <p className="text-sm text-muted-foreground" style={isDarkMode ? getGlowStyle('#6b7280') : {}}>Taxa de Conclusão</p>
             </CardContent>
           </Card>
           
           <Card className="border-border bg-card">
             <CardContent className="pt-6 text-center">
-              <p className="text-2xl font-bold text-accent">-</p>
-              <p className="text-sm text-muted-foreground">Média Geral</p>
+              <p className="text-2xl font-bold text-accent" style={getGlowStyle('#8b5cf6')}>-</p>
+              <p className="text-sm text-muted-foreground" style={isDarkMode ? getGlowStyle('#6b7280') : {}}>Média Geral</p>
             </CardContent>
           </Card>
           
           <Card className="border-border bg-card">
             <CardContent className="pt-6 text-center">
-              <p className="text-2xl font-bold text-muted-foreground">
+              <p className="text-2xl font-bold text-muted-foreground" style={getGlowStyle('#f59e0b')}>
                 {responses.length > 0 ? getTimeAgo(responses[0].submittedAt!) : "-"}
               </p>
-              <p className="text-sm text-muted-foreground">Última Resposta</p>
+              <p className="text-sm text-muted-foreground" style={isDarkMode ? getGlowStyle('#6b7280') : {}}>Última Resposta</p>
             </CardContent>
           </Card>
         </div>
@@ -203,7 +241,7 @@ export default function ResponsesView() {
         <Card className="border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">Todas as Respostas</h2>
+              <h2 className="text-lg font-semibold text-foreground" style={getGlowStyle('#10b981')}>Todas as Respostas</h2>
               <div className="flex space-x-2">
                 <Button variant="ghost" size="sm">
                   <Filter className="h-4 w-4" />
@@ -221,8 +259,8 @@ export default function ResponsesView() {
             ) : responses.length === 0 ? (
               <div className="text-center py-8">
                 <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">Nenhuma resposta ainda</h3>
-                <p className="text-muted-foreground">As respostas dos alunos aparecerão aqui</p>
+                <h3 className="text-lg font-medium text-foreground mb-2" style={getGlowStyle('#6b7280')}>Nenhuma resposta ainda</h3>
+                <p className="text-muted-foreground" style={isDarkMode ? getGlowStyle('#6b7280') : {}}>As respostas dos alunos aparecerão aqui</p>
               </div>
             ) : (
               <div className="overflow-x-auto">

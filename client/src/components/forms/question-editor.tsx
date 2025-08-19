@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,57 @@ interface QuestionEditorProps {
 
 export default function QuestionEditor({ question, index, onChange, onRemove }: QuestionEditorProps) {
   const [options, setOptions] = useState<string[]>(question.options || []);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Dark mode detection
+  useEffect(() => {
+    const checkDarkMode = () => {
+      const html = document.documentElement;
+      const isDark = html.classList.contains('dark') || 
+                     window.getComputedStyle(html).colorScheme === 'dark' ||
+                     window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setIsDarkMode(isDark);
+    };
+
+    checkDarkMode();
+
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class', 'data-theme'],
+    });
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', checkDarkMode);
+
+    return () => {
+      observer.disconnect();
+      mediaQuery.removeEventListener('change', checkDarkMode);
+    };
+  }, []);
+
+  // Glow effect function
+  const getGlowStyle = (color: string = '#3b82f6') => {
+    if (!isDarkMode) return {};
+    
+    return {
+      textShadow: `0 0 10px ${color}40, 0 0 20px ${color}30, 0 0 30px ${color}20`,
+      transition: 'text-shadow 0.3s ease-in-out',
+    };
+  };
+
+  // Button glow style function
+  const getButtonStyle = () => {
+    if (!isDarkMode) return {};
+    
+    return {
+      backgroundColor: '#9741E7',
+      borderColor: '#9741E7',
+      color: 'white',
+      boxShadow: `0 0 10px #9741E740, 0 0 20px #9741E730, 0 0 30px #9741E720`,
+      transition: 'all 0.3s ease-in-out',
+    };
+  };
 
   const updateQuestion = (field: keyof InsertFormQuestion, value: any) => {
     onChange({ ...question, [field]: value });
@@ -42,10 +93,10 @@ export default function QuestionEditor({ question, index, onChange, onRemove }: 
   };
 
   return (
-    <Card className="bg-gray-50 border border-gray-200">
+    <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 transition-colors duration-200">
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-medium text-gray-700">Pergunta {index + 1}</span>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300" style={getGlowStyle('#8b5cf6')}>Pergunta {index + 1}</span>
           <Button variant="ghost" size="sm" onClick={onRemove} className="text-red-500 hover:text-red-700">
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -57,12 +108,12 @@ export default function QuestionEditor({ question, index, onChange, onRemove }: 
               value={question.question}
               onChange={(e) => updateQuestion('question', e.target.value)}
               placeholder="Digite sua pergunta..."
-              className="bg-white"
+              className="bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
             />
           </div>
           <div>
             <Select value={question.type} onValueChange={(value) => updateQuestion('type', value)}>
-              <SelectTrigger className="bg-white">
+              <SelectTrigger className="bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -79,7 +130,7 @@ export default function QuestionEditor({ question, index, onChange, onRemove }: 
         {/* Options for radio/checkbox */}
         {(question.type === 'radio' || question.type === 'checkbox') && (
           <div className="mb-3">
-            <Label className="text-sm font-medium text-gray-700 mb-2 block">Opções</Label>
+            <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block" style={isDarkMode ? getGlowStyle('#10b981') : {}}>Opções</Label>
             <div className="space-y-2">
               {options.map((option, optionIndex) => (
                 <div key={optionIndex} className="flex items-center space-x-2">
@@ -87,7 +138,7 @@ export default function QuestionEditor({ question, index, onChange, onRemove }: 
                     value={option}
                     onChange={(e) => updateOption(optionIndex, e.target.value)}
                     placeholder={`Opção ${optionIndex + 1}`}
-                    className="bg-white"
+                    className="bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
                   />
                   <Button
                     variant="ghost"
@@ -99,7 +150,7 @@ export default function QuestionEditor({ question, index, onChange, onRemove }: 
                   </Button>
                 </div>
               ))}
-              <Button variant="outline" size="sm" onClick={addOption}>
+              <Button variant="outline" size="sm" onClick={addOption} style={getButtonStyle()}>
                 <Plus className="mr-2 h-4 w-4" />
                 Adicionar Opção
               </Button>
@@ -110,21 +161,21 @@ export default function QuestionEditor({ question, index, onChange, onRemove }: 
         {/* Scale options */}
         {question.type === 'scale' && (
           <div className="mb-3">
-            <Label className="text-sm font-medium text-gray-700 mb-2 block">Escala</Label>
+            <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block" style={isDarkMode ? getGlowStyle('#10b981') : {}}>Escala</Label>
             <div className="grid grid-cols-2 gap-4">
               <Input
                 type="number"
                 value={question.scaleMin || 1}
                 onChange={(e) => updateQuestion('scaleMin', parseInt(e.target.value))}
                 placeholder="Valor mínimo (ex: 1)"
-                className="bg-white"
+                className="bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
               />
               <Input
                 type="number"
                 value={question.scaleMax || 10}
                 onChange={(e) => updateQuestion('scaleMax', parseInt(e.target.value))}
                 placeholder="Valor máximo (ex: 10)"
-                className="bg-white"
+                className="bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
               />
             </div>
           </div>
@@ -136,7 +187,7 @@ export default function QuestionEditor({ question, index, onChange, onRemove }: 
               checked={!!question.isRequired}
               onCheckedChange={(checked) => updateQuestion('isRequired', checked)}
             />
-            <span className="text-sm text-gray-700">Obrigatória</span>
+            <span className="text-sm text-gray-700 dark:text-gray-300" style={isDarkMode ? getGlowStyle('#f59e0b') : {}}>Obrigatória</span>
           </label>
         </div>
       </CardContent>

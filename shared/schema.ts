@@ -44,6 +44,7 @@ export const classes = pgTable("classes", {
   code: varchar("code").notNull().unique(),
   studentLimit: integer("student_limit").notNull(),
   groupCount: integer("group_count").notNull(),
+  colorIndex: integer("color_index").default(0),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

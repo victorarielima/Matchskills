@@ -8,6 +8,27 @@
       "when": 1755605611996,
       "tag": "0000_bumpy_santa_claus",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1755619141326,
+      "tag": "0001_motionless_roughhouse",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1755621049875,
+      "tag": "0002_living_patriot",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1755621150604,
+      "tag": "0003_pale_lifeguard",
+      "breakpoints": true
     }
   ]
 }

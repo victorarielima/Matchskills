@@ -27,7 +27,29 @@ export default function TeacherDashboard() {
   const [editName, setEditName] = useState("");
   const [deletingClass, setDeletingClass] = useState<Class | null>(null);
   const [changingColorClass, setChangingColorClass] = useState<Class | null>(null);
-  const [classColors, setClassColors] = useState<Record<string, string>>({});
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Detecção de modo escuro
+  useEffect(() => {
+    const checkDarkMode = () => {
+      // Foca apenas na classe 'dark' aplicada ao html/documentElement
+      const isDark = document.documentElement.classList.contains('dark');
+      setIsDarkMode(isDark);
+    };
+
+    checkDarkMode();
+    
+    // Observer para mudanças no DOM
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, { 
+      attributes: true, 
+      attributeFilter: ['class'] 
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -37,9 +59,39 @@ export default function TeacherDashboard() {
     }
   }, [isAuthenticated, isLoading, setLocation]);
 
+  // Função para aplicar efeito glow no modo escuro
+  const getGlowStyle = (baseColor: string) => {
+    if (!isDarkMode) return {};
+    
+    const glowColors: Record<string, string> = {
+      'blue': '0 0 20px rgba(59, 130, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.2)',
+      'green': '0 0 20px rgba(34, 197, 94, 0.4), 0 0 40px rgba(34, 197, 94, 0.2)',
+      'purple': '0 0 20px rgba(147, 51, 234, 0.4), 0 0 40px rgba(147, 51, 234, 0.2)',
+      'red': '0 0 20px rgba(239, 68, 68, 0.4), 0 0 40px rgba(239, 68, 68, 0.2)',
+      'yellow': '0 0 20px rgba(245, 158, 11, 0.4), 0 0 40px rgba(245, 158, 11, 0.2)',
+      'pink': '0 0 20px rgba(236, 72, 153, 0.4), 0 0 40px rgba(236, 72, 153, 0.2)',
+      'indigo': '0 0 20px rgba(99, 102, 241, 0.4), 0 0 40px rgba(99, 102, 241, 0.2)',
+      'teal': '0 0 20px rgba(20, 184, 166, 0.4), 0 0 40px rgba(20, 184, 166, 0.2)',
+      'orange': '0 0 20px rgba(249, 115, 22, 0.4), 0 0 40px rgba(249, 115, 22, 0.2)',
+      'cyan': '0 0 20px rgba(6, 182, 212, 0.4), 0 0 40px rgba(6, 182, 212, 0.2)'
+    };
+
+    return {
+      boxShadow: glowColors[baseColor] || glowColors['blue'],
+      transition: 'box-shadow 0.3s ease-in-out'
+    };
+  };
+
   const { data: classes = [], isLoading: classesLoading } = useQuery<Class[]>({
     queryKey: ["/api/classes"],
     retry: false,
+  });
+
+  // Query para buscar contagens de respostas por turma
+  const { data: responseCounts = {} } = useQuery<Record<string, number>>({
+    queryKey: ["/api/classes/response-counts"],
+    retry: false,
+    enabled: classes.length > 0, // Só executa se há turmas
   });
 
   // Mutation para atualizar nome da turma
@@ -107,6 +159,27 @@ export default function TeacherDashboard() {
     },
   });
 
+  // Mutation para atualizar cor da turma
+  const updateColorMutation = useMutation({
+    mutationFn: async ({ classId, colorIndex }: { classId: string; colorIndex: number }) => {
+      return await apiRequest("PATCH", `/api/classes/${classId}/color`, { colorIndex });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/classes"] });
+      toast({
+        title: "Sucesso!",
+        description: "Cor da turma atualizada!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao atualizar cor da turma",
+        variant: "destructive",
+      });
+    },
+  });
+
   const totalClasses = classes.length;
   const activeClasses = classes.filter(c => c.isActive).length;
 
@@ -123,6 +196,12 @@ export default function TeacherDashboard() {
     "bg-gradient-to-br from-orange-500 to-orange-700",
     "bg-gradient-to-br from-cyan-500 to-cyan-700"
   ];
+
+  // Função para obter a cor da turma baseada no colorIndex salvo no banco
+  const getClassColor = (classItem: Class) => {
+    const colorIndex = classItem.colorIndex || 0;
+    return colorOptions[colorIndex] || colorOptions[0];
+  };
 
   // Funções helper
   const openEditDialog = (classItem: Class) => {
@@ -154,17 +233,13 @@ export default function TeacherDashboard() {
     setChangingColorClass(classItem);
   };
 
-  const handleColorChange = (colorClass: string) => {
+  const handleColorChange = (colorIndex: number) => {
     if (changingColorClass) {
-      setClassColors(prev => ({
-        ...prev,
-        [changingColorClass.id]: colorClass
-      }));
-      setChangingColorClass(null);
-      toast({
-        title: "Sucesso!",
-        description: "Cor da turma alterada!",
+      updateColorMutation.mutate({ 
+        classId: changingColorClass.id, 
+        colorIndex 
       });
+      setChangingColorClass(null);
     }
   };
 
@@ -173,7 +248,7 @@ export default function TeacherDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <Nav />
       
       {/* Main Content */}
@@ -181,8 +256,24 @@ export default function TeacherDashboard() {
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-matchskills-blue-800">Dashboard</h1>
-              <p className="text-gray-600 mt-1">Gerencie suas avaliações e formulários</p>
+              <h1 
+                className={`text-3xl font-bold transition-all duration-300 ${
+                  isDarkMode 
+                    ? 'text-white' 
+                    : 'text-matchskills-blue-800'
+                }`}
+                style={isDarkMode ? { textShadow: '0 0 20px rgba(255, 255, 255, 0.5)' } : {}}
+              >
+                Dashboard
+              </h1>
+              <p 
+                className={`mt-1 transition-colors duration-300 ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                }`}
+                style={isDarkMode ? { textShadow: '0 0 10px rgba(255, 255, 255, 0.3)' } : {}}
+              >
+                Gerencie suas avaliações e formulários
+              </p>
             </div>
             <div className="mt-4 sm:mt-0">
               <Button 
@@ -197,44 +288,76 @@ export default function TeacherDashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="border border-gray-200">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <Card className={`transition-all duration-300 ${
+            isDarkMode 
+              ? 'bg-gray-800 border-gray-700' 
+              : 'border border-gray-200'
+          }`}>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-3 bg-matchskills-blue-100 rounded-lg">
-                  <Users className="text-matchskills-blue-600 text-xl" />
+                <div className={`p-3 rounded-lg ${
+                  isDarkMode 
+                    ? 'bg-blue-500 bg-opacity-20' 
+                    : 'bg-matchskills-blue-100'
+                }`}>
+                  <Users className={`text-xl ${
+                    isDarkMode 
+                      ? 'text-blue-400' 
+                      : 'text-matchskills-blue-600'
+                  }`} />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total de Turmas</p>
-                  <p className="text-2xl font-bold text-matchskills-blue-800">{totalClasses}</p>
+                  <p className={`text-sm font-medium ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                  }`}>
+                    Total de Turmas
+                  </p>
+                  <p 
+                    className={`text-2xl font-bold ${
+                      isDarkMode ? 'text-white' : 'text-matchskills-blue-800'
+                    }`}
+                    style={isDarkMode ? { textShadow: '0 0 10px rgba(59, 130, 246, 0.5)' } : {}}
+                  >
+                    {totalClasses}
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="border border-gray-200">
+          <Card className={`transition-all duration-300 ${
+            isDarkMode 
+              ? 'bg-gray-800 border-gray-700' 
+              : 'border border-gray-200'
+          }`}>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-3 bg-matchskills-green-100 rounded-lg">
-                  <FileText className="text-matchskills-green-600 text-xl" />
+                <div className={`p-3 rounded-lg ${
+                  isDarkMode 
+                    ? 'bg-green-500 bg-opacity-20' 
+                    : 'bg-matchskills-green-100'
+                }`}>
+                  <FileText className={`text-xl ${
+                    isDarkMode 
+                      ? 'text-green-400' 
+                      : 'text-matchskills-green-600'
+                  }`} />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Formulários Ativos</p>
-                  <p className="text-2xl font-bold text-matchskills-blue-800">{activeClasses}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border border-gray-200">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-matchskills-teal-400 bg-opacity-20 rounded-lg">
-                  <BarChart3 className="text-matchskills-teal-600 text-xl" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Respostas Coletadas</p>
-                  <p className="text-2xl font-bold text-matchskills-blue-800">0</p>
+                  <p className={`text-sm font-medium ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                  }`}>
+                    Formulários Ativos
+                  </p>
+                  <p 
+                    className={`text-2xl font-bold ${
+                      isDarkMode ? 'text-white' : 'text-matchskills-blue-800'
+                    }`}
+                    style={isDarkMode ? { textShadow: '0 0 10px rgba(34, 197, 94, 0.5)' } : {}}
+                  >
+                    {activeClasses}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -242,18 +365,47 @@ export default function TeacherDashboard() {
         </div>
 
         {/* Classes Grid */}
-        <Card className="border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-matchskills-blue-800">Suas Turmas</h2>
+        <Card className={`transition-all duration-300 ${
+          isDarkMode 
+            ? 'bg-gray-800 border-gray-700' 
+            : 'border border-gray-200'
+        }`}>
+          <div className={`px-6 py-4 transition-colors duration-300 ${
+            isDarkMode 
+              ? 'border-b border-gray-700' 
+              : 'border-b border-gray-200'
+          }`}>
+            <h2 
+              className={`text-lg font-semibold transition-all duration-300 ${
+                isDarkMode ? 'text-white' : 'text-matchskills-blue-800'
+              }`}
+              style={isDarkMode ? { textShadow: '0 0 10px rgba(255, 255, 255, 0.3)' } : {}}
+            >
+              Suas Turmas
+            </h2>
           </div>
           <CardContent className="p-6">
             {classesLoading ? (
-              <div className="text-center py-8">Carregando turmas...</div>
+              <div className={`text-center py-8 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-900'
+              }`}>
+                Carregando turmas...
+              </div>
             ) : classes.length === 0 ? (
               <div className="text-center py-8">
-                <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma turma criada</h3>
-                <p className="text-gray-600 mb-4">Comece criando sua primeira turma</p>
+                <FileText className={`mx-auto h-12 w-12 mb-4 ${
+                  isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                }`} />
+                <h3 className={`text-lg font-medium mb-2 ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>
+                  Nenhuma turma criada
+                </h3>
+                <p className={`mb-4 ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                }`}>
+                  Comece criando sua primeira turma
+                </p>
                 <Button 
                   className="bg-matchskills-green-500 hover:bg-matchskills-green-600 text-white transition-colors duration-200"
                   onClick={() => setLocation('/create-class')}
@@ -265,18 +417,24 @@ export default function TeacherDashboard() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {classes.map((classItem, index) => {
-                  const gradientColors = [
-                    'bg-gradient-to-r from-blue-500 to-blue-600',
-                    'bg-gradient-to-r from-green-500 to-green-600', 
-                    'bg-gradient-to-r from-purple-500 to-purple-600',
-                    'bg-gradient-to-r from-orange-500 to-orange-600',
-                    'bg-gradient-to-r from-teal-500 to-teal-600',
-                    'bg-gradient-to-r from-pink-500 to-pink-600',
-                  ];
-                  const gradientClass = gradientColors[index % gradientColors.length];
+                  const classColor = getClassColor(classItem);
+                  const colorBase = classColor.includes('blue') ? 'blue' : 
+                                   classColor.includes('green') ? 'green' :
+                                   classColor.includes('purple') ? 'purple' :
+                                   classColor.includes('red') ? 'red' :
+                                   classColor.includes('yellow') ? 'yellow' :
+                                   classColor.includes('pink') ? 'pink' :
+                                   classColor.includes('indigo') ? 'indigo' :
+                                   classColor.includes('teal') ? 'teal' :
+                                   classColor.includes('orange') ? 'orange' :
+                                   classColor.includes('cyan') ? 'cyan' : 'blue';
 
                 return (
-                  <div key={classItem.id} className={`${classColors[classItem.id] || gradientClass} rounded-lg p-6 text-white`}>
+                  <div 
+                    key={classItem.id} 
+                    className={`${classColor} rounded-lg p-6 text-white`}
+                    style={getGlowStyle(colorBase)}
+                  >
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <h3 className="text-lg font-semibold">{classItem.name}</h3>
@@ -327,9 +485,21 @@ export default function TeacherDashboard() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </div>                      <div className="flex items-center justify-between text-sm mb-4">
-                        <span>Até {classItem.studentLimit} alunos</span>
-                        <span>{classItem.groupCount} grupos</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-4 text-sm mb-4">
+                        <div className="text-center">
+                          <div className="font-semibold">{classItem.studentLimit}</div>
+                          <div className="text-white text-opacity-75 text-xs">Limite alunos</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-semibold">{classItem.groupCount}</div>
+                          <div className="text-white text-opacity-75 text-xs">Grupos</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-semibold">{responseCounts[classItem.id] || 0}</div>
+                          <div className="text-white text-opacity-75 text-xs">Respostas</div>
+                        </div>
                       </div>
                       
                       <div className="flex space-x-2 mb-4">
@@ -438,7 +608,7 @@ export default function TeacherDashboard() {
               <button
                 key={index}
                 className={`${colorClass} w-12 h-12 rounded-lg border-2 border-transparent hover:border-gray-400 transition-colors`}
-                onClick={() => handleColorChange(colorClass)}
+                onClick={() => handleColorChange(index)}
               />
             ))}
           </div>
