@@ -102,7 +102,11 @@ export default function CreateClass() {
 
   const createClassMutation = useMutation({
     mutationFn: async (data: { classData: InsertClass; questions: InsertFormQuestion[] }) => {
-      return await apiRequest("POST", "/api/classes", data);
+      if (isEditMode) {
+        return await apiRequest("PUT", `/api/classes/${classId}`, data);
+      } else {
+        return await apiRequest("POST", "/api/classes", data);
+      }
     },
     onSuccess: () => {
       toast({

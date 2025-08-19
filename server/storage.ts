@@ -1,4 +1,10 @@
+import { eq, desc } from "drizzle-orm";
+import { db } from "./db.js";
 import {
+  users,
+  classes,
+  formQuestions,
+  formResponses,
   type User,
   type RegisterUser,
   type Class,
@@ -7,9 +13,9 @@ import {
   type InsertFormQuestion,
   type FormResponse,
   type InsertFormResponse,
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { randomBytes } from "crypto";
-import { mockUsers, mockClasses, mockFormQuestions, mockFormResponses } from "../mock-data";
+import bcrypt from "bcrypt";
 
 export interface IStorage {
   // User operations
@@ -22,11 +28,14 @@ export interface IStorage {
   createClass(teacherId: string, classData: InsertClass): Promise<Class>;
   getClassByCode(code: string): Promise<Class | undefined>;
   getClassById(id: string): Promise<Class | undefined>;
+  updateClass(id: string, classData: Partial<InsertClass>): Promise<Class>;
   updateClassStatus(id: string, isActive: boolean): Promise<void>;
+  deleteClass(id: string): Promise<void>;
   
   // Form question operations
   createFormQuestions(classId: string, questions: InsertFormQuestion[]): Promise<FormQuestion[]>;
   getFormQuestions(classId: string): Promise<FormQuestion[]>;
+  updateFormQuestions(classId: string, questions: InsertFormQuestion[]): Promise<FormQuestion[]>;
   
   // Form response operations
   submitFormResponse(response: InsertFormResponse): Promise<FormResponse>;
@@ -34,135 +43,236 @@ export interface IStorage {
   getResponseById(responseId: string): Promise<FormResponse | undefined>;
 }
 
-// In-memory storage for new data created during the session
-let inMemoryClasses: Class[] = [...mockClasses];
-let inMemoryQuestions: FormQuestion[] = [...mockFormQuestions];
-let inMemoryResponses: FormResponse[] = [...mockFormResponses];
-let inMemoryUsers: User[] = mockUsers.map(u => ({
-  ...u,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-}));
+function generateClassCode(): string {
+  return Math.floor(1000000000 + Math.random() * 9000000000).toString();
+}
 
-export class MockStorage implements IStorage {
+export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
-    return inMemoryUsers.find(u => u.id === id);
+    try {
+      const result = await db.select().from(users).where(eq(users.id, id));
+      return result[0];
+    } catch (error) {
+      console.error('Error getting user:', error);
+      return undefined;
+    }
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return inMemoryUsers.find(u => u.email === email);
+    try {
+      const result = await db.select().from(users).where(eq(users.email, email));
+      return result[0];
+    } catch (error) {
+      console.error('Error getting user by email:', error);
+      return undefined;
+    }
   }
 
   async createUser(userData: RegisterUser): Promise<User> {
-    const newUser: User = {
-      ...userData,
-      id: `user-${Date.now()}`,
-      firstName: userData.firstName || null,
-      lastName: userData.lastName || null,
-      profileImageUrl: userData.profileImageUrl || null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    inMemoryUsers.push(newUser);
-    return newUser;
+    try {
+      // Hash the password
+      const hashedPassword = await bcrypt.hash(userData.password, 10);
+      
+      const result = await db.insert(users).values({
+        ...userData,
+        password: hashedPassword,
+      }).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw new Error('Failed to create user');
+    }
   }
 
   // Class operations
   async getTeacherClasses(teacherId: string): Promise<Class[]> {
-    return inMemoryClasses
-      .filter(c => c.teacherId === teacherId)
-      .sort((a, b) => (b.createdAt || new Date()).getTime() - (a.createdAt || new Date()).getTime());
+    try {
+      const result = await db
+        .select()
+        .from(classes)
+        .where(eq(classes.teacherId, teacherId))
+        .orderBy(desc(classes.createdAt));
+      return result;
+    } catch (error) {
+      console.error('Error getting teacher classes:', error);
+      return [];
+    }
   }
 
   async createClass(teacherId: string, classData: InsertClass): Promise<Class> {
-    // Generate unique class code
-    const code = this.generateClassCode();
-    
-    const newClass: Class = {
-      ...classData,
-      id: `class-${Date.now()}`,
-      teacherId,
-      code,
-      isActive: classData.isActive ?? true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    
-    inMemoryClasses.push(newClass);
-    return newClass;
+    try {
+      const code = generateClassCode();
+      const result = await db.insert(classes).values({
+        ...classData,
+        teacherId,
+        code,
+      }).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error creating class:', error);
+      throw new Error('Failed to create class');
+    }
   }
 
   async getClassByCode(code: string): Promise<Class | undefined> {
-    return inMemoryClasses.find(c => c.code === code);
+    try {
+      const result = await db.select().from(classes).where(eq(classes.code, code));
+      return result[0];
+    } catch (error) {
+      console.error('Error getting class by code:', error);
+      return undefined;
+    }
   }
 
   async getClassById(id: string): Promise<Class | undefined> {
-    return inMemoryClasses.find(c => c.id === id);
+    try {
+      const result = await db.select().from(classes).where(eq(classes.id, id));
+      return result[0];
+    } catch (error) {
+      console.error('Error getting class by id:', error);
+      return undefined;
+    }
+  }
+
+  async updateClass(id: string, classData: Partial<InsertClass>): Promise<Class> {
+    try {
+      const result = await db
+        .update(classes)
+        .set({ ...classData, updatedAt: new Date() })
+        .where(eq(classes.id, id))
+        .returning();
+      
+      if (result.length === 0) {
+        throw new Error('Class not found');
+      }
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error updating class:', error);
+      throw new Error('Failed to update class');
+    }
   }
 
   async updateClassStatus(id: string, isActive: boolean): Promise<void> {
-    const classIndex = inMemoryClasses.findIndex(c => c.id === id);
-    if (classIndex !== -1) {
-      inMemoryClasses[classIndex] = {
-        ...inMemoryClasses[classIndex],
-        isActive,
-        updatedAt: new Date(),
-      };
+    try {
+      await db
+        .update(classes)
+        .set({ isActive, updatedAt: new Date() })
+        .where(eq(classes.id, id));
+    } catch (error) {
+      console.error('Error updating class status:', error);
+      throw new Error('Failed to update class status');
+    }
+  }
+
+  async deleteClass(id: string): Promise<void> {
+    try {
+      // Delete in order due to foreign key constraints
+      // 1. Delete form responses first
+      await db.delete(formResponses).where(eq(formResponses.classId, id));
+      
+      // 2. Delete form questions 
+      await db.delete(formQuestions).where(eq(formQuestions.classId, id));
+      
+      // 3. Delete the class itself
+      await db.delete(classes).where(eq(classes.id, id));
+    } catch (error) {
+      console.error('Error deleting class:', error);
+      throw new Error('Failed to delete class');
     }
   }
 
   // Form question operations
   async createFormQuestions(classId: string, questions: InsertFormQuestion[]): Promise<FormQuestion[]> {
-    const newQuestions: FormQuestion[] = questions.map((q, index) => ({
-      ...q,
-      id: `q-${Date.now()}-${index}`,
-      classId,
-      order: index + 1,
-      options: q.options ?? null,
-      isRequired: q.isRequired ?? null,
-      scaleMin: q.scaleMin ?? null,
-      scaleMax: q.scaleMax ?? null,
-      createdAt: new Date(),
-    }));
-
-    inMemoryQuestions.push(...newQuestions);
-    return newQuestions;
+    try {
+      const questionsWithClassId = questions.map(q => ({
+        ...q,
+        classId,
+      }));
+      
+      const result = await db.insert(formQuestions).values(questionsWithClassId).returning();
+      return result;
+    } catch (error) {
+      console.error('Error creating form questions:', error);
+      throw new Error('Failed to create form questions');
+    }
   }
 
   async getFormQuestions(classId: string): Promise<FormQuestion[]> {
-    return inMemoryQuestions
-      .filter(q => q.classId === classId)
-      .sort((a, b) => a.order - b.order);
+    try {
+      const result = await db
+        .select()
+        .from(formQuestions)
+        .where(eq(formQuestions.classId, classId))
+        .orderBy(formQuestions.order);
+      return result;
+    } catch (error) {
+      console.error('Error getting form questions:', error);
+      return [];
+    }
+  }
+
+  async updateFormQuestions(classId: string, questions: InsertFormQuestion[]): Promise<FormQuestion[]> {
+    try {
+      // Delete existing questions
+      await db.delete(formQuestions).where(eq(formQuestions.classId, classId));
+      
+      // Insert new questions
+      if (questions.length > 0) {
+        const questionsWithClassId = questions.map(q => ({
+          ...q,
+          classId,
+        }));
+        
+        const result = await db.insert(formQuestions).values(questionsWithClassId).returning();
+        return result;
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error updating form questions:', error);
+      throw new Error('Failed to update form questions');
+    }
   }
 
   // Form response operations
   async submitFormResponse(response: InsertFormResponse): Promise<FormResponse> {
-    const newResponse: FormResponse = {
-      ...response,
-      id: `r-${Date.now()}`,
-      studentEmail: response.studentEmail ?? null,
-      submittedAt: new Date(),
-    };
-    
-    inMemoryResponses.push(newResponse);
-    return newResponse;
+    try {
+      const result = await db.insert(formResponses).values(response).returning();
+      return result[0];
+    } catch (error) {
+      console.error('Error submitting form response:', error);
+      throw new Error('Failed to submit form response');
+    }
   }
 
   async getClassResponses(classId: string): Promise<FormResponse[]> {
-    return inMemoryResponses
-      .filter(r => r.classId === classId)
-      .sort((a, b) => (b.submittedAt || new Date()).getTime() - (a.submittedAt || new Date()).getTime());
+    try {
+      const result = await db
+        .select()
+        .from(formResponses)
+        .where(eq(formResponses.classId, classId))
+        .orderBy(desc(formResponses.submittedAt));
+      return result;
+    } catch (error) {
+      console.error('Error getting class responses:', error);
+      return [];
+    }
   }
 
   async getResponseById(responseId: string): Promise<FormResponse | undefined> {
-    return inMemoryResponses.find(r => r.id === responseId);
-  }
-
-  private generateClassCode(): string {
-    // Generate a 10-digit numeric code
-    return randomBytes(5).toString('hex').replace(/[a-f]/g, '').substring(0, 10).padEnd(10, '0');
+    try {
+      const result = await db.select().from(formResponses).where(eq(formResponses.id, responseId));
+      return result[0];
+    } catch (error) {
+      console.error('Error getting response by id:', error);
+      return undefined;
+    }
   }
 }
 
-export const storage = new MockStorage();
+// Create and export the storage instance
+export const storage = new DatabaseStorage();

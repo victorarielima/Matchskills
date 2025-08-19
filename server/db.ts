@@ -1,7 +1,15 @@
-// Mock database - no real database connection needed
-// All data operations use mock data from mock-data.ts
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import * as schema from "../shared/schema.js";
 
-export const db = {
-  // This is a mock object that won't be used
-  // All database operations are handled with mock data in storage.ts
-};
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is required");
+}
+
+// Create the connection
+const client = postgres(process.env.DATABASE_URL, {
+  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+});
+
+// Create the database instance
+export const db = drizzle(client, { schema });
