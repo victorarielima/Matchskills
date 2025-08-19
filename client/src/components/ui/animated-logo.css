@@ -1,0 +1,233 @@
+.matchskills-logo {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.icon-section {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.brain-core {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40%;
+    height: 40%;
+    background: linear-gradient(135deg, #00f5ff, #0080ff);
+    border-radius: 50%;
+    box-shadow: 0 0 20px rgba(0, 245, 255, 0.6);
+    animation: brainPulse 2.5s infinite ease-in-out;
+}
+
+.brain-core::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 50%;
+    height: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    animation: innerGlow 2s infinite ease-in-out;
+}
+
+.skill-node {
+    position: absolute;
+    width: 18%;
+    height: 18%;
+    border-radius: 40%;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    animation: float 4s infinite ease-in-out;
+}
+
+.skill-node::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44%;
+    height: 44%;
+    border-radius: 20%;
+    animation: skillGlow 2s infinite;
+}
+
+.node-1 {
+    top: 10%;
+    left: 30%;
+    background: linear-gradient(45deg, #22c55e, #16a34a);
+    animation-delay: 0s;
+}
+.node-1::after {
+    background: #22c55e;
+}
+
+.node-2 {
+    top: 30%;
+    right: 10%;
+    background: linear-gradient(45deg, #14b8a6, #0d9488);
+    animation-delay: -1s;
+}
+.node-2::after {
+    background: #14b8a6;
+}
+
+.node-3 {
+    bottom: 30%;
+    right: 30%;
+    background: linear-gradient(45deg, #3b82f6, #2563eb);
+    animation-delay: -2s;
+}
+.node-3::after {
+    background: #3b82f6;
+}
+
+.node-4 {
+    bottom: 10%;
+    left: 10%;
+    background: linear-gradient(45deg, #1e40af, #1e3a8a);
+    animation-delay: -3s;
+}
+.node-4::after {
+    background: #1e40af;
+}
+
+.connection {
+    position: absolute;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(0, 245, 255, 0.8), transparent);
+    transform-origin: left center;
+    opacity: 0;
+    animation: connect 4s infinite ease-in-out;
+}
+
+.connect-1 {
+    top: 19%;
+    left: 48%;
+    width: 25%;
+    transform: rotate(20deg);
+    animation-delay: 0.5s;
+}
+
+.connect-2 {
+    top: 39%;
+    right: 28%;
+    width: 25%;
+    transform: rotate(-45deg);
+    animation-delay: 1.5s;
+}
+
+.connect-3 {
+    bottom: 39%;
+    right: 48%;
+    width: 25%;
+    transform: rotate(45deg);
+    animation-delay: 2.5s;
+}
+
+.connect-4 {
+    bottom: 19%;
+    left: 28%;
+    width: 25%;
+    transform: rotate(-20deg);
+    animation-delay: 3.5s;
+}
+
+.text-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.brand-name {
+    font-weight: 800;
+    margin: 0;
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #14b8a6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -1px;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.subtitle {
+    font-size: 10px;
+    color: rgba(107, 114, 128, 0.8);
+    font-weight: 300;
+    margin: 4px 0 0 0;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+/* Animations */
+@keyframes brainPulse {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        box-shadow: 0 0 20px rgba(0, 245, 255, 0.6);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.1);
+        box-shadow: 0 0 30px rgba(0, 245, 255, 0.9);
+    }
+}
+
+@keyframes innerGlow {
+    0%, 100% {
+        opacity: 0.9;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+@keyframes skillGlow {
+    0%, 100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: translate(-50%, -50%) scale(1.2);
+    }
+}
+
+@keyframes connect {
+    0%, 15%, 85%, 100% {
+        opacity: 0;
+        transform: scaleX(0);
+    }
+    30%, 70% {
+        opacity: 1;
+        transform: scaleX(1);
+    }
+}
+
+/* Responsivo */
+@media (max-width: 640px) {
+    .brand-name {
+        letter-spacing: -0.5px;
+    }
+    
+    .subtitle {
+        font-size: 8px;
+        letter-spacing: 1px;
+    }
+}
