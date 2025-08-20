@@ -10,7 +10,11 @@ export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
   // Teacher routes
-  app.get('/api/classes', requireAuth, async (req: any, res) => {
+    /**
+     * GET /api/classes
+     * Retorna todas as turmas do professor autenticado
+     */
+    app.get('/api/classes', requireAuth, async (req: any, res) => {
     try {
       const teacherId = req.user.id;
       const classes = await storage.getTeacherClasses(teacherId);
@@ -21,6 +25,10 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  /**
+   * GET /api/classes/response-counts
+   * Retorna a contagem de respostas por turma do professor
+   */
   app.get('/api/classes/response-counts', requireAuth, async (req: any, res) => {
     try {
       const teacherId = req.user.id;
@@ -32,6 +40,11 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  /**
+   * POST /api/classes
+   * Cria uma nova turma e suas perguntas associadas
+   * Espera classData e questions no corpo da requisição
+   */
   app.post('/api/classes', requireAuth, async (req: any, res) => {
     try {
       const teacherId = req.user.id;
@@ -51,6 +64,11 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  /**
+   * PUT /api/classes/:classId
+   * Atualiza dados completos ou parciais de uma turma
+   * Verifica se o professor é dono da turma
+   */
   app.put('/api/classes/:classId', requireAuth, async (req: any, res) => {
     try {
       const { classId } = req.params;
@@ -100,6 +118,10 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  /**
+   * GET /api/classes/:classId
+   * Retorna dados de uma turma específica do professor
+   */
   app.get('/api/classes/:classId', requireAuth, async (req: any, res) => {
     try {
       const { classId } = req.params;
@@ -117,6 +139,10 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  /**
+   * GET /api/classes/:classId/questions
+   * Retorna as perguntas do formulário de uma turma específica
+   */
   app.get('/api/classes/:classId/questions', requireAuth, async (req: any, res) => {
     try {
       const { classId } = req.params;
@@ -136,6 +162,10 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  /**
+   * GET /api/classes/:classId/responses
+   * Retorna todas as respostas dos alunos para uma turma
+   */
   app.get('/api/classes/:classId/responses', requireAuth, async (req: any, res) => {
     try {
       const { classId } = req.params;
@@ -155,6 +185,10 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  /**
+   * GET /api/responses/:responseId
+   * Retorna uma resposta específica, junto com as perguntas do formulário
+   */
   app.get('/api/responses/:responseId', requireAuth, async (req: any, res) => {
     try {
       const { responseId } = req.params;
@@ -184,6 +218,10 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  /**
+   * PATCH /api/classes/:classId/status
+   * Atualiza o status (ativa/inativa) de uma turma
+   */
   app.patch('/api/classes/:classId/status', requireAuth, async (req: any, res) => {
     try {
       const { classId } = req.params;
@@ -204,6 +242,10 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  /**
+   * PATCH /api/classes/:classId/color
+   * Atualiza a cor da turma (índice de cor)
+   */
   app.patch('/api/classes/:classId/color', requireAuth, async (req: any, res) => {
     try {
       const { classId } = req.params;
@@ -229,7 +271,14 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Student routes (no authentication required)
+  // ==================== ROTAS PÚBLICAS (Aluno) ====================
+  // Não exigem autenticação
+
+  /**
+   * GET /api/class/:code
+   * Retorna dados da turma pelo código público
+   * Só retorna se a turma estiver ativa
+   */
   app.get('/api/class/:code', async (req, res) => {
     try {
       const { code } = req.params;
@@ -250,6 +299,10 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  /**
+   * GET /api/class/:code/questions
+   * Retorna perguntas do formulário da turma pelo código público
+   */
   app.get('/api/class/:code/questions', async (req, res) => {
     try {
       const { code } = req.params;
@@ -271,6 +324,11 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  /**
+   * POST /api/class/:code/submit
+   * Submete respostas do aluno para a turma
+   * Espera dados do aluno e respostas no corpo
+   */
   app.post('/api/class/:code/submit', async (req, res) => {
     try {
       const { code } = req.params;
@@ -297,7 +355,11 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // DELETE route for classes
+  /**
+   * DELETE /api/classes/:classId
+   * Exclui uma turma e todos os dados associados
+   * Apenas o professor dono pode excluir
+   */
   app.delete('/api/classes/:classId', requireAuth, async (req: any, res) => {
     try {
       const { classId } = req.params;
@@ -319,6 +381,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Inicializa o servidor HTTP com as rotas registradas
   const httpServer = createServer(app);
   return httpServer;
 }

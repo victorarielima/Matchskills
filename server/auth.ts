@@ -39,6 +39,7 @@ export function setupAuth(app: Express) {
     },
   };
 
+  // Configurações iniciais do Express para autenticação e sessão
   app.set("trust proxy", 1);
   app.use(session(sessionSettings));
   app.use(passport.initialize());
@@ -50,18 +51,14 @@ export function setupAuth(app: Express) {
       async (email, password, done) => {
         try {
           const user = await storage.getUserByEmail(email);
-          
           if (!user) {
             return done(null, false, { message: "Email ou senha inválidos" });
           }
-          
-          // Use bcrypt to compare passwords
+          // Compara senha informada com hash armazenado
           const passwordMatch = await comparePasswords(password, user.password);
-          
           if (!passwordMatch) {
             return done(null, false, { message: "Email ou senha inválidos" });
           }
-          
           return done(null, user);
         } catch (error) {
           return done(error);
@@ -70,8 +67,8 @@ export function setupAuth(app: Express) {
     )
   );
 
+  // Serialização/deserialização do usuário na sessão
   passport.serializeUser((user: any, done) => done(null, user.id));
-  
   passport.deserializeUser(async (id: string, done) => {
     try {
       const user = await storage.getUser(id);
@@ -81,20 +78,22 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Register endpoint
+  /**
+   * POST /api/register
+   * Cria um novo usuário (registro)
+   * Espera dados do usuário no corpo da requisição
+   * Faz login automático após registro
+   */
   app.post("/api/register", async (req, res, next) => {
     try {
       const userData = registerUserSchema.parse(req.body);
-      
-      // Check if user already exists
+      // Verifica se o email já está cadastrado
       const existingUser = await storage.getUserByEmail(userData.email);
       if (existingUser) {
         return res.status(400).json({ message: "Este email já está em uso" });
       }
-
-      // Create user (password hashing is handled in storage)
+      // Cria usuário (hash da senha feito no storage)
       const user = await storage.createUser(userData);
-
       req.login(user, (err) => {
         if (err) return next(err);
         res.status(201).json({ 
@@ -110,17 +109,20 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Login endpoint
+  /**
+   * POST /api/login
+   * Realiza login do usuário
+   * Espera email e senha no corpo da requisição
+   * Retorna dados do usuário autenticado
+   */
   app.post("/api/login", (req, res, next) => {
     try {
       loginUserSchema.parse(req.body);
-      
       passport.authenticate("local", (err: any, user: User | false, info: any) => {
         if (err) return next(err);
         if (!user) {
           return res.status(401).json({ message: info?.message || "Email ou senha inválidos" });
         }
-        
         req.login(user, (err) => {
           if (err) return next(err);
           res.json({
@@ -137,7 +139,11 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Logout endpoint
+  /**
+   * POST /api/logout
+   * Realiza logout do usuário
+   * Destroi sessão e limpa cookie
+   */
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) return next(err);
@@ -149,12 +155,15 @@ export function setupAuth(app: Express) {
     });
   });
 
-  // Get current user
+  /**
+   * GET /api/user
+   * Retorna dados do usuário autenticado
+   * Se não estiver autenticado, retorna erro 401
+   */
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Não autenticado" });
     }
-    
     const user = req.user as User;
     res.json({
       id: user.id,
@@ -166,7 +175,10 @@ export function setupAuth(app: Express) {
   });
 }
 
-// Auth middleware
+/**
+ * Middleware de proteção de rotas
+ * Bloqueia acesso se o usuário não estiver autenticado
+ */
 export function requireAuth(req: any, res: any, next: any) {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ message: "Acesso negado" });
