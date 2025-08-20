@@ -28,14 +28,16 @@ export function setupAuth(app: Express) {
     checkPeriod: 86400000, // prune expired entries every 24h
   });
 
+  const isProduction = process.env.NODE_ENV === "production";
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "your-secret-key",
     resave: false,
     saveUninitialized: false,
     store: sessionStore,
     cookie: {
-      secure: false,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      secure: isProduction, // true em produção (HTTPS)
+      sameSite: isProduction ? "none" : "lax", // "none" para produção
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
     },
   };
 
