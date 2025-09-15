@@ -131,7 +131,7 @@ export default function ResponsesView() {
   };
 
   const renderResponseValue = (question: FormQuestion, value: any) => {
-    if (!value) {
+    if (value === undefined || value === null || value === "") {
       return <span className="text-muted-foreground italic">Não respondida</span>;
     }
 
@@ -377,40 +377,82 @@ export default function ResponsesView() {
               <div className="space-y-4">
                 <h4 className="text-lg font-semibold text-foreground">Respostas</h4>
                 
-                {responseDetails.questions && responseDetails.questions.length > 0 ? (
-                  responseDetails.questions.map((question) => {
-                    const responseValue = (responseDetails.responses as Record<string, any>)[question.id];
-                    return (
-                      <Card key={question.id} className="border border-gray-200">
-                        <CardContent className="pt-4">
-                          <div className="space-y-3">
-                            <div className="flex items-start justify-between">
-                              <h5 className="font-medium text-foreground flex-1">
-                                {question.question}
-                              </h5>
-                              <Badge variant="outline" className="ml-2">
-                                {question.type.replace('_', ' ')}
-                              </Badge>
-                            </div>
-                            
-                            <div className="pt-2 border-t border-gray-100">
-                              <div className="text-sm text-muted-foreground mb-1">Resposta:</div>
-                              <div className="text-foreground">
-                                {renderResponseValue(question, responseValue)}
+                {/* Debug info for development */}
+                {import.meta.env.DEV && responseDetails && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 text-xs">
+                    <p><strong>Debug Info:</strong></p>
+                    <p>Questions: {responseDetails.questions?.length || 0}</p>
+                    <p>Response object type: {typeof responseDetails.responses}</p>
+                    <p>Response keys: {responseDetails.responses ? Object.keys(responseDetails.responses as object).join(', ') : 'none'}</p>
+                    {responseDetails.questions?.length > 0 && (
+                      <p>First question ID: {responseDetails.questions[0].id}</p>
+                    )}
+                    {responseDetails.responses && responseDetails.questions?.length > 0 && (
+                      <p>Sample response value: {JSON.stringify((responseDetails.responses as any)[responseDetails.questions[0].id])}</p>
+                    )}
+                  </div>
+                )}
+                
+                {responseDetailsError ? (
+                  <div className="text-center py-8">
+                    <p className="text-red-500">Erro ao carregar detalhes da resposta.</p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Tente novamente ou entre em contato com o suporte.
+                    </p>
+                  </div>
+                ) : responseDetails?.questions && responseDetails.questions.length > 0 ? (
+                  <div className="space-y-3">
+                    {responseDetails.questions.map((question) => {
+                      // Ensure responses is an object and safely access the value
+                      const responses = responseDetails.responses as Record<string, any> || {};
+                      const responseValue = responses[question.id];
+                      
+                      return (
+                        <Card key={question.id} className="border border-gray-200">
+                          <CardContent className="pt-4">
+                            <div className="space-y-3">
+                              <div className="flex items-start justify-between">
+                                <h5 className="font-medium text-foreground flex-1">
+                                  {question.question}
+                                </h5>
+                                <Badge variant="outline" className="ml-2">
+                                  {question.type.replace('_', ' ')}
+                                </Badge>
+                              </div>
+                              
+                              <div className="pt-2 border-t border-gray-100">
+                                <div className="text-sm text-muted-foreground mb-1">Resposta:</div>
+                                <div className="text-foreground">
+                                  {renderResponseValue(question, responseValue)}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                    
+                    {/* Show helpful message if no responses match any questions */}
+                    {responseDetails.questions.length > 0 && 
+                     responseDetails.responses && 
+                     Object.keys(responseDetails.responses as object).length === 0 && (
+                      <div className="text-center py-4 bg-amber-50 border border-amber-200 rounded-md">
+                        <p className="text-amber-700 text-sm">
+                          Nenhuma resposta foi encontrada para as perguntas desta turma.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : responseDetails && responseDetails.questions ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">
+                      Esta turma não possui perguntas configuradas.
+                    </p>
+                  </div>
                 ) : (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">
-                      {responseDetails.questions === undefined 
-                        ? "Carregando perguntas..." 
-                        : "Nenhuma pergunta encontrada para esta turma."
-                      }
+                      Carregando perguntas...
                     </p>
                   </div>
                 )}
