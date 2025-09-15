@@ -79,7 +79,7 @@ export default function ResponsesView() {
     retry: false,
   });
 
-  const { data: responseDetails, isLoading: responseDetailsLoading } = useQuery<FormResponse & { questions: FormQuestion[] }>({
+  const { data: responseDetails, isLoading: responseDetailsLoading, error: responseDetailsError } = useQuery<FormResponse & { questions: FormQuestion[] }>({
     queryKey: ["/api/responses", selectedResponseId],
     enabled: !!selectedResponseId && isAuthenticated,
     retry: false,
@@ -376,32 +376,44 @@ export default function ResponsesView() {
               {/* Responses */}
               <div className="space-y-4">
                 <h4 className="text-lg font-semibold text-foreground">Respostas</h4>
-                {responseDetails.questions?.map((question) => {
-                  const responseValue = (responseDetails.responses as Record<string, any>)[question.id];
-                  return (
-                    <Card key={question.id} className="border border-gray-200">
-                      <CardContent className="pt-4">
-                        <div className="space-y-3">
-                          <div className="flex items-start justify-between">
-                            <h5 className="font-medium text-foreground flex-1">
-                              {question.question}
-                            </h5>
-                            <Badge variant="outline" className="ml-2">
-                              {question.type.replace('_', ' ')}
-                            </Badge>
-                          </div>
-                          
-                          <div className="pt-2 border-t border-gray-100">
-                            <div className="text-sm text-muted-foreground mb-1">Resposta:</div>
-                            <div className="text-foreground">
-                              {renderResponseValue(question, responseValue)}
+                
+                {responseDetails.questions && responseDetails.questions.length > 0 ? (
+                  responseDetails.questions.map((question) => {
+                    const responseValue = (responseDetails.responses as Record<string, any>)[question.id];
+                    return (
+                      <Card key={question.id} className="border border-gray-200">
+                        <CardContent className="pt-4">
+                          <div className="space-y-3">
+                            <div className="flex items-start justify-between">
+                              <h5 className="font-medium text-foreground flex-1">
+                                {question.question}
+                              </h5>
+                              <Badge variant="outline" className="ml-2">
+                                {question.type.replace('_', ' ')}
+                              </Badge>
+                            </div>
+                            
+                            <div className="pt-2 border-t border-gray-100">
+                              <div className="text-sm text-muted-foreground mb-1">Resposta:</div>
+                              <div className="text-foreground">
+                                {renderResponseValue(question, responseValue)}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                        </CardContent>
+                      </Card>
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">
+                      {responseDetails.questions === undefined 
+                        ? "Carregando perguntas..." 
+                        : "Nenhuma pergunta encontrada para esta turma."
+                      }
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
