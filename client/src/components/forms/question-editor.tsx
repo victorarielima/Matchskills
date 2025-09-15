@@ -97,7 +97,13 @@ export default function QuestionEditor({ question, index, onChange, onRemove }: 
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300" style={getGlowStyle('#8b5cf6')}>Pergunta {index + 1}</span>
-          <Button variant="ghost" size="sm" onClick={onRemove} className="text-red-500 hover:text-red-700">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            type="button"
+            onClick={onRemove} 
+            className="text-red-500 hover:text-red-700"
+          >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -107,6 +113,16 @@ export default function QuestionEditor({ question, index, onChange, onRemove }: 
             <Input
               value={question.question}
               onChange={(e) => updateQuestion('question', e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  // Trigger form submission - busca o formulário pai e submete
+                  const form = e.currentTarget.closest('form');
+                  if (form) {
+                    form.requestSubmit();
+                  }
+                }
+              }}
               placeholder="Digite sua pergunta..."
               className="bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
             />
@@ -137,12 +153,23 @@ export default function QuestionEditor({ question, index, onChange, onRemove }: 
                   <Input
                     value={option}
                     onChange={(e) => updateOption(optionIndex, e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        // Trigger form submission - busca o formulário pai e submete
+                        const form = e.currentTarget.closest('form');
+                        if (form) {
+                          form.requestSubmit();
+                        }
+                      }
+                    }}
                     placeholder={`Opção ${optionIndex + 1}`}
                     className="bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
                   />
                   <Button
                     variant="ghost"
                     size="sm"
+                    type="button"
                     onClick={() => removeOption(optionIndex)}
                     className="text-red-500 hover:text-red-700"
                   >
@@ -150,7 +177,13 @@ export default function QuestionEditor({ question, index, onChange, onRemove }: 
                   </Button>
                 </div>
               ))}
-              <Button variant="outline" size="sm" onClick={addOption} style={getButtonStyle()}>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                type="button"
+                onClick={addOption} 
+                style={getButtonStyle()}
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Adicionar Opção
               </Button>
@@ -167,6 +200,16 @@ export default function QuestionEditor({ question, index, onChange, onRemove }: 
                 type="number"
                 value={question.scaleMin || 1}
                 onChange={(e) => updateQuestion('scaleMin', parseInt(e.target.value))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    // Trigger form submission - busca o formulário pai e submete
+                    const form = e.currentTarget.closest('form');
+                    if (form) {
+                      form.requestSubmit();
+                    }
+                  }
+                }}
                 placeholder="Valor mínimo (ex: 1)"
                 className="bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
               />
@@ -174,6 +217,16 @@ export default function QuestionEditor({ question, index, onChange, onRemove }: 
                 type="number"
                 value={question.scaleMax || 10}
                 onChange={(e) => updateQuestion('scaleMax', parseInt(e.target.value))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    // Trigger form submission - busca o formulário pai e submete
+                    const form = e.currentTarget.closest('form');
+                    if (form) {
+                      form.requestSubmit();
+                    }
+                  }
+                }}
                 placeholder="Valor máximo (ex: 10)"
                 className="bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
               />

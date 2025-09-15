@@ -18,6 +18,160 @@ import FormBuilder from "@/components/forms/form-builder";
 import { X, Plus, FileText } from "lucide-react";
 import type { InsertClass, InsertFormQuestion, Class, FormQuestion } from "@shared/schema";
 
+// Formulários padrão
+const DISC_TEMPLATE: InsertFormQuestion[] = [
+  {
+    type: "text",
+    question: "Qual sua matrícula?",
+    order: 1,
+    isRequired: true,
+  },
+  {
+    type: "text", 
+    question: "Qual seu nome?",
+    order: 2,
+    isRequired: true,
+  },
+  {
+    type: "radio",
+    question: "Qual seu nível de conhecimento em desenvolvimento web (HTML, CSS, JS)?",
+    order: 3,
+    isRequired: true,
+    options: ["Iniciante", "Intermediário", "Avançado", "Nenhum"],
+  },
+  {
+    type: "checkbox",
+    question: "Você já usou algum framework web? (Pode marcar mais de uma opção)",
+    order: 4,
+    isRequired: true,
+    options: ["Não", "Angular", "Bootstrap", "Flask", "Node.js", "PHP", "React", "Spring Boot", "Vue.js", "Next.js", "ElysiaJS", "ExpressJS", "Django", "Laravel"],
+  },
+  {
+    type: "radio",
+    question: "Qual seu nível de conhecimento em desenvolvimento Mobile?",
+    order: 5,
+    isRequired: true,
+    options: ["Nenhum", "Iniciante", "Intermediário", "Avançado"],
+  },
+  {
+    type: "checkbox",
+    question: "Você já desenvolveu apps mobile? (Pode marcar mais de uma opção)",
+    order: 6,
+    isRequired: true,
+    options: ["Não", "Unity", "Android Studio", "React Native", "Expo", "Flutter"],
+  },
+  {
+    type: "checkbox",
+    question: "Você já trabalhou com banco de dados?",
+    order: 7,
+    isRequired: true,
+    options: ["Não", "My SQL", "PostgreSQL", "Oracle", "SQL Server", "Firebase", "Mongo DB", "Supabase", "Draw SQL"],
+  },
+  {
+    type: "checkbox",
+    question: "Você já publicou algum site ou app?",
+    order: 8,
+    isRequired: true,
+    options: ["Nunca publiquei", "GitHub", "Heroku", "Render", "Vercel", "Firebase", "GCP", "AWS", "Azure"],
+  },
+  {
+    type: "radio",
+    question: "Com qual palavra você mais se identifica?",
+    order: 9,
+    isRequired: true,
+    options: ["Cuidadoso", "Paciente", "Comunicativo", "Determinado"],
+  },
+  {
+    type: "radio",
+    question: "Qual dessas palavras mais se aplica a você?",
+    order: 10,
+    isRequired: true,
+    options: ["Prestativo", "Entusiasmado", "Organizado", "Competitivo"],
+  },
+  {
+    type: "radio",
+    question: "Qual adjetivo te descreve melhor?",
+    order: 11,
+    isRequired: true,
+    options: ["Calmo", "Direto", "Otimista", "Preciso"],
+  },
+  {
+    type: "radio",
+    question: "Em uma situação nova, você tende a:",
+    order: 12,
+    isRequired: true,
+    options: ["Manter a harmonia", "Seguir as regras", "Tomar decisões rápidas", "Convencer as pessoas"],
+  },
+  {
+    type: "radio",
+    question: "Você prefere:",
+    order: 13,
+    isRequired: true,
+    options: ["Ter estabilidade", "Focar nos resultados", "Trabalhar com dados e fatos", "Estar com pessoas"],
+  },
+  {
+    type: "text",
+    question: "Perfil: (Essa informação será determinada com base nas respostas dos participantes)",
+    order: 14,
+    isRequired: false,
+  },
+];
+
+const BIG_FIVE_TEMPLATE: InsertFormQuestion[] = [
+  {
+    type: "text",
+    question: "Qual sua matrícula?",
+    order: 1,
+    isRequired: true,
+  },
+  {
+    type: "text",
+    question: "Qual seu nome?",
+    order: 2,
+    isRequired: true,
+  },
+  {
+    type: "scale",
+    question: "Eu me vejo como alguém que é falante, extrovertido",
+    order: 3,
+    isRequired: true,
+    scaleMin: 1,
+    scaleMax: 7,
+  },
+  {
+    type: "scale",
+    question: "Eu me vejo como alguém que tende a encontrar defeitos nos outros",
+    order: 4,
+    isRequired: true,
+    scaleMin: 1,
+    scaleMax: 7,
+  },
+  {
+    type: "scale",
+    question: "Eu me vejo como alguém que faz um trabalho completo e minucioso",
+    order: 5,
+    isRequired: true,
+    scaleMin: 1,
+    scaleMax: 7,
+  },
+  {
+    type: "scale",
+    question: "Eu me vejo como alguém que fica deprimido, melancólico",
+    order: 6,
+    isRequired: true,
+    scaleMin: 1,
+    scaleMax: 7,
+  },
+  {
+    type: "scale",
+    question: "Eu me vejo como alguém que é original, tem ideias novas",
+    order: 7,
+    isRequired: true,
+    scaleMin: 1,
+    scaleMax: 7,
+  },
+];
+
 const createClassFormSchema = insertClassSchema.extend({
   questions: z.array(insertFormQuestionSchema).optional(),
 });
@@ -248,6 +402,16 @@ export default function CreateClass() {
                         id="name"
                         placeholder="Ex: Avaliação de Competências - Marketing"
                         className="bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            // Trigger form submission
+                            const form = e.currentTarget.closest('form');
+                            if (form) {
+                              form.requestSubmit();
+                            }
+                          }
+                        }}
                         {...form.register("name")}
                       />
                       {form.formState.errors.name && (
@@ -263,6 +427,16 @@ export default function CreateClass() {
                         min="1"
                         max="200"
                         className="bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            // Trigger form submission
+                            const form = e.currentTarget.closest('form');
+                            if (form) {
+                              form.requestSubmit();
+                            }
+                          }
+                        }}
                         {...form.register("studentLimit", { valueAsNumber: true })}
                       />
                       {form.formState.errors.studentLimit && (
@@ -278,6 +452,16 @@ export default function CreateClass() {
                         min="1"
                         max="20"
                         className="bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            // Trigger form submission
+                            const form = e.currentTarget.closest('form');
+                            if (form) {
+                              form.requestSubmit();
+                            }
+                          }
+                        }}
                         {...form.register("groupCount", { valueAsNumber: true })}
                       />
                       {form.formState.errors.groupCount && (
@@ -304,23 +488,67 @@ export default function CreateClass() {
 
                 {/* Form Builder */}
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white" style={getGlowStyle('#8b5cf6')}>Formulário de Avaliação</h2>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setQuestions([...questions, {
-                        type: "text",
-                        question: "",
-                        order: questions.length + 1,
-                        isRequired: false,
-                      }])}
-                      style={getButtonStyle()}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Adicionar Pergunta
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setQuestions(DISC_TEMPLATE)}
+                        style={getButtonStyle()}
+                      >
+                        Usar Template DISC
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setQuestions(BIG_FIVE_TEMPLATE)}
+                        style={getButtonStyle()}
+                      >
+                        Usar Template Big Five
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setQuestions([...questions, {
+                          type: "text",
+                          question: "",
+                          order: questions.length + 1,
+                          isRequired: false,
+                        }])}
+                        style={getButtonStyle()}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Adicionar Pergunta
+                      </Button>
+                    </div>
                   </div>
+
+                  {/* Templates Info */}
+                  {questions.length === 0 && (
+                    <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3" style={getGlowStyle('#10b981')}>
+                        Templates Disponíveis
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-3 bg-white dark:bg-gray-700 rounded border">
+                          <h4 className="font-medium text-gray-900 dark:text-white mb-2">Template DISC</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            Formulário completo para avaliação de perfil comportamental DISC, incluindo perguntas sobre conhecimentos técnicos e características pessoais.
+                          </p>
+                        </div>
+                        <div className="p-3 bg-white dark:bg-gray-700 rounded border">
+                          <h4 className="font-medium text-gray-900 dark:text-white mb-2">Template Big Five</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            Formulário baseado no modelo dos Cinco Grandes Fatores de personalidade com escalas de avaliação.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <FormBuilder
                     questions={questions}
