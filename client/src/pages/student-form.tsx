@@ -10,9 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { GraduationCap, Users, Send, ArrowLeft } from "lucide-react";
+import { GraduationCap, Users, Send, ArrowLeft, Lock } from "lucide-react";
 import type { Class, FormQuestion } from "@shared/schema";
 
 const submitFormSchema = z.object({
@@ -28,10 +29,15 @@ export default function StudentForm() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
+  const [checkboxResponses, setCheckboxResponses] = useState<Record<string, string[]>>({});
+
+  // State to track if class is inactive (closed)
+  const [isClassClosed, setIsClassClosed] = useState(false);
 
   const { data: classData, isLoading: classLoading, error: classError } = useQuery<Class>({
     queryKey: ["/api/class", code],
     enabled: !!code,
+    retry: false,
   });
 
   const { data: questions = [], isLoading: questionsLoading } = useQuery<FormQuestion[]>({
@@ -48,13 +54,57 @@ export default function StudentForm() {
     },
   });
 
+  // Handle checkbox responses
+  const handleCheckboxChange = (questionId: string, option: string, checked: boolean) => {
+    const currentValues = checkboxResponses[questionId] || [];
+    let newValues: string[];
+    
+    if (checked) {
+      newValues = [...currentValues, option];
+    } else {
+      newValues = currentValues.filter(value => value !== option);
+    }
+    
+    setCheckboxResponses(prev => ({
+      ...prev,
+      [questionId]: newValues
+    }));
+    
+    // Update form with JSON string representation for the form schema
+    form.setValue(`responses.${questionId}`, JSON.stringify(newValues));
+  };
+
   const submitFormMutation = useMutation({
     mutationFn: async (data: SubmitFormData) => {
-      return await apiRequest("POST", `/api/class/${code}/submit`, {
+      // Get all form values
+      const formValues = form.getValues();
+      
+      // Create a fresh responses object using question IDs directly
+      const responsesByQuestionId: Record<string, any> = {};
+      
+      // For each question, get the response value
+      questions.forEach((question) => {
+        // Try to get the value from the form
+        let responseValue: any = formValues.responses?.[question.id];
+        
+        // For checkboxes, use our separate state
+        if (question.type === 'checkbox' && checkboxResponses[question.id]?.length > 0) {
+          responseValue = checkboxResponses[question.id];
+        }
+        
+        // Only include non-empty responses
+        if (responseValue !== undefined && responseValue !== null && responseValue !== '') {
+          responsesByQuestionId[question.id] = responseValue;
+        }
+      });
+      
+      const submissionData = {
         studentName: data.studentName,
         studentEmail: data.studentEmail || null,
-        responses: data.responses,
-      });
+        responses: responsesByQuestionId,
+      };
+      
+      return await apiRequest("POST", `/api/class/${code}/submit`, submissionData);
     },
     onSuccess: () => {
       toast({
@@ -75,12 +125,20 @@ export default function StudentForm() {
   // Redirect if class not found or closed
   useEffect(() => {
     if (classError) {
-      toast({
-        title: "Erro",
-        description: "Turma não encontrada ou código inválido.",
-        variant: "destructive",
-      });
-      setTimeout(() => setLocation("/"), 2000);
+      // Check if error indicates the class is closed/inactive
+      const errorMessage = (classError as any)?.message || '';
+      const errorStatus = (classError as any)?.status || (classError as any)?.response?.status;
+      
+      if (errorMessage.includes('closed') || errorStatus === 400) {
+        setIsClassClosed(true);
+      } else {
+        toast({
+          title: "Erro",
+          description: "Turma não encontrada ou código inválido.",
+          variant: "destructive",
+        });
+        setTimeout(() => setLocation("/"), 2000);
+      }
     }
   }, [classError, setLocation, toast]);
 
@@ -112,15 +170,74 @@ export default function StudentForm() {
     );
   }
 
-  if (!classData) {
+  // Check if form is inactive/locked FIRST
+  if (isClassClosed) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">Turma não encontrada</p>
+        <div className="max-w-md mx-auto px-4">
+          <Card className="text-center border-blue-200 bg-blue-50">
+            <CardContent className="p-8">
+              <div className="mx-auto h-16 w-16 text-blue-600 mb-4 flex items-center justify-center">
+                <Lock className="w-16 h-16" />
+              </div>
+              <h1 className="text-xl font-bold text-blue-800 mb-3">Formulário Fechado</h1>
+              <p className="text-blue-700 mb-4 leading-relaxed">
+                Este formulário foi fechado pelo organizador e não está mais disponível para respostas.
+              </p>
+              <p className="text-blue-600 text-sm mb-6">
+                Entre em contato com o operador para verificar como proceder.
+              </p>
+              <div className="space-y-3">
+                <Button 
+                  onClick={() => setLocation("/")} 
+                  variant="outline"
+                  className="w-full border-blue-300 text-blue-700 hover:bg-blue-100"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Voltar para Página Inicial
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
   }
+
+  if (!classData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md mx-auto px-4">
+          <Card className="text-center border-red-200 bg-red-50">
+            <CardContent className="p-8">
+              <div className="mx-auto h-16 w-16 text-red-600 mb-4 flex items-center justify-center">
+                <GraduationCap className="w-16 h-16" />
+              </div>
+              <h1 className="text-xl font-bold text-red-800 mb-3">Turma Não Encontrada</h1>
+              <p className="text-red-700 mb-4 leading-relaxed">
+                O código informado não corresponde a nenhuma turma ativa ou o link pode estar incorreto.
+              </p>
+              <p className="text-red-600 text-sm mb-6">
+                Verifique o código e tente novamente.
+              </p>
+              <div className="space-y-3">
+                <Button 
+                  onClick={() => setLocation("/")} 
+                  variant="outline"
+                  className="w-full border-red-300 text-red-700 hover:bg-red-100"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Voltar para Digitar Código
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+
 
   if (submitted) {
     return (
@@ -151,10 +268,10 @@ export default function StudentForm() {
           <CardContent className="p-6">
             <div className="text-center">
               <Users className="mx-auto h-12 w-12 text-primary mb-4" />
-              <h1 className="text-2xl font-bold text-gray-900">{classData.name}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{classData?.name}</h1>
               <p className="text-gray-600 mt-2">Preencha o formulário abaixo</p>
               <div className="mt-4 inline-flex items-center px-3 py-1 rounded-full text-sm bg-primary-100 text-primary-800">
-                <span className="font-mono">Código: {classData.code}</span>
+                <span className="font-mono">Código: {classData?.code}</span>
               </div>
             </div>
           </CardContent>
@@ -248,6 +365,23 @@ export default function StudentForm() {
                         </div>
                       ))}
                     </RadioGroup>
+                  )}
+
+                  {question.type === "checkbox" && question.options && (
+                    <div className="space-y-2">
+                      {question.options.map((option, optionIndex) => (
+                        <div key={optionIndex} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`${question.id}-${optionIndex}`}
+                            checked={(checkboxResponses[question.id] || []).includes(option)}
+                            onCheckedChange={(checked) => 
+                              handleCheckboxChange(question.id, option, !!checked)
+                            }
+                          />
+                          <Label htmlFor={`${question.id}-${optionIndex}`}>{option}</Label>
+                        </div>
+                      ))}
+                    </div>
                   )}
                   
                   {question.type === "scale" && question.scaleMin && question.scaleMax && (
