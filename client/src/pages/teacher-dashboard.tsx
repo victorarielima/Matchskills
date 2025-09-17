@@ -27,7 +27,10 @@ export default function TeacherDashboard() {
   const [editName, setEditName] = useState("");
   const [deletingClass, setDeletingClass] = useState<Class | null>(null);
   const [changingColorClass, setChangingColorClass] = useState<Class | null>(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Detecção inicial do modo escuro
+    return document.documentElement.classList.contains('dark');
+  });
 
   // Detecção de modo escuro
   useEffect(() => {
@@ -190,11 +193,7 @@ export default function TeacherDashboard() {
     "bg-gradient-to-br from-green-500 to-green-700",
     "bg-gradient-to-br from-red-500 to-red-700",
     "bg-gradient-to-br from-yellow-500 to-yellow-700",
-    "bg-gradient-to-br from-pink-500 to-pink-700",
-    "bg-gradient-to-br from-indigo-500 to-indigo-700",
-    "bg-gradient-to-br from-teal-500 to-teal-700",
-    "bg-gradient-to-br from-orange-500 to-orange-700",
-    "bg-gradient-to-br from-cyan-500 to-cyan-700"
+    "bg-gradient-to-br from-pink-500 to-pink-700"
   ];
 
   // Função para obter a cor da turma baseada no colorIndex salvo no banco
@@ -603,7 +602,7 @@ export default function TeacherDashboard() {
           <DialogHeader>
             <DialogTitle>Escolher Cor da Turma</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-5 gap-3">
+          <div className="grid grid-cols-6 gap-3">
             {colorOptions.map((colorClass, index) => (
               <button
                 key={index}
