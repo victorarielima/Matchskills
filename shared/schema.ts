@@ -74,6 +74,15 @@ export const formResponses = pgTable("form_responses", {
   submittedAt: timestamp("submitted_at").defaultNow(),
 });
 
+// Individual question responses table - NEW APPROACH
+export const questionResponses = pgTable("question_responses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  formResponseId: varchar("form_response_id").notNull().references(() => formResponses.id, { onDelete: 'cascade' }),
+  questionId: varchar("question_id").notNull().references(() => formQuestions.id, { onDelete: 'cascade' }),
+  responseValue: text("response_value").notNull(), // Store individual response as text/JSON string
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   classes: many(classes),
@@ -88,17 +97,30 @@ export const classesRelations = relations(classes, ({ one, many }) => ({
   responses: many(formResponses),
 }));
 
-export const formQuestionsRelations = relations(formQuestions, ({ one }) => ({
+export const formQuestionsRelations = relations(formQuestions, ({ one, many }) => ({
   class: one(classes, {
     fields: [formQuestions.classId],
     references: [classes.id],
   }),
+  responses: many(questionResponses),
 }));
 
-export const formResponsesRelations = relations(formResponses, ({ one }) => ({
+export const formResponsesRelations = relations(formResponses, ({ one, many }) => ({
   class: one(classes, {
     fields: [formResponses.classId],
     references: [classes.id],
+  }),
+  questionResponses: many(questionResponses),
+}));
+
+export const questionResponsesRelations = relations(questionResponses, ({ one }) => ({
+  formResponse: one(formResponses, {
+    fields: [questionResponses.formResponseId],
+    references: [formResponses.id],
+  }),
+  question: one(formQuestions, {
+    fields: [questionResponses.questionId],
+    references: [formQuestions.id],
   }),
 }));
 
@@ -137,6 +159,11 @@ export const insertFormResponseSchema = createInsertSchema(formResponses).omit({
   submittedAt: true,
 });
 
+export const insertQuestionResponseSchema = createInsertSchema(questionResponses).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type LoginUser = z.infer<typeof loginUserSchema>;
@@ -148,3 +175,5 @@ export type FormQuestion = typeof formQuestions.$inferSelect;
 export type InsertFormQuestion = z.infer<typeof insertFormQuestionSchema>;
 export type FormResponse = typeof formResponses.$inferSelect;
 export type InsertFormResponse = z.infer<typeof insertFormResponseSchema>;
+export type QuestionResponse = typeof questionResponses.$inferSelect;
+export type InsertQuestionResponse = z.infer<typeof insertQuestionResponseSchema>;
