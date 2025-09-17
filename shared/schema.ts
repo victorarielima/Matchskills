@@ -83,6 +83,26 @@ export const questionResponses = pgTable("question_responses", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Group divisions table - For managing group configurations
+export const groupDivisions = pgTable("group_divisions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  classId: varchar("class_id").notNull().references(() => classes.id, { onDelete: 'cascade' }),
+  name: varchar("name").notNull(), // "Divisão 1", "Grupos Projeto Final"
+  membersPerGroup: integer("members_per_group").notNull(),
+  prompt: text("prompt"), // Para IA futura
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Group members table - For storing group assignments
+export const groupMembers = pgTable("group_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  divisionId: varchar("division_id").notNull().references(() => groupDivisions.id, { onDelete: 'cascade' }),
+  groupNumber: integer("group_number").notNull(), // 1, 2, 3, etc.
+  formResponseId: varchar("form_response_id").notNull().references(() => formResponses.id, { onDelete: 'cascade' }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   classes: many(classes),
@@ -95,6 +115,7 @@ export const classesRelations = relations(classes, ({ one, many }) => ({
   }),
   questions: many(formQuestions),
   responses: many(formResponses),
+  groupDivisions: many(groupDivisions),
 }));
 
 export const formQuestionsRelations = relations(formQuestions, ({ one, many }) => ({
@@ -111,6 +132,7 @@ export const formResponsesRelations = relations(formResponses, ({ one, many }) =
     references: [classes.id],
   }),
   questionResponses: many(questionResponses),
+  groupMemberships: many(groupMembers),
 }));
 
 export const questionResponsesRelations = relations(questionResponses, ({ one }) => ({
@@ -121,6 +143,25 @@ export const questionResponsesRelations = relations(questionResponses, ({ one })
   question: one(formQuestions, {
     fields: [questionResponses.questionId],
     references: [formQuestions.id],
+  }),
+}));
+
+export const groupDivisionsRelations = relations(groupDivisions, ({ one, many }) => ({
+  class: one(classes, {
+    fields: [groupDivisions.classId],
+    references: [classes.id],
+  }),
+  members: many(groupMembers),
+}));
+
+export const groupMembersRelations = relations(groupMembers, ({ one }) => ({
+  division: one(groupDivisions, {
+    fields: [groupMembers.divisionId],
+    references: [groupDivisions.id],
+  }),
+  formResponse: one(formResponses, {
+    fields: [groupMembers.formResponseId],
+    references: [formResponses.id],
   }),
 }));
 
@@ -164,6 +205,17 @@ export const insertQuestionResponseSchema = createInsertSchema(questionResponses
   createdAt: true,
 });
 
+export const insertGroupDivisionSchema = createInsertSchema(groupDivisions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertGroupMemberSchema = createInsertSchema(groupMembers).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type LoginUser = z.infer<typeof loginUserSchema>;
@@ -177,3 +229,7 @@ export type FormResponse = typeof formResponses.$inferSelect;
 export type InsertFormResponse = z.infer<typeof insertFormResponseSchema>;
 export type QuestionResponse = typeof questionResponses.$inferSelect;
 export type InsertQuestionResponse = z.infer<typeof insertQuestionResponseSchema>;
+export type GroupDivision = typeof groupDivisions.$inferSelect;
+export type InsertGroupDivision = z.infer<typeof insertGroupDivisionSchema>;
+export type GroupMember = typeof groupMembers.$inferSelect;
+export type InsertGroupMember = z.infer<typeof insertGroupMemberSchema>;

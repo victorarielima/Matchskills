@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Nav from "@/components/ui/nav";
-import { ArrowLeft, Download, Filter, SortAsc, BarChart3, Users, FileText, Clock, Eye } from "lucide-react";
+import { ArrowLeft, Download, Filter, SortAsc, BarChart3, Users, FileText, Clock, Eye, Shuffle } from "lucide-react";
 import type { FormResponse, FormQuestion } from "@shared/schema";
 
 export default function ResponsesView() {
@@ -232,6 +232,18 @@ export default function ResponsesView() {
               </p>
             </div>
             <div className="mt-4 sm:mt-0 flex space-x-3">
+              <Button 
+                variant="outline"
+                onClick={() => setLocation(`/class/${classId}/groups`)}
+                className={`transition-all duration-300 ${
+                  isDarkMode 
+                    ? 'bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700' 
+                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <Shuffle className="mr-2 h-4 w-4" />
+                Dividir Grupos
+              </Button>
               <Button 
                 variant="outline" 
                 className={`transition-all duration-300 ${
