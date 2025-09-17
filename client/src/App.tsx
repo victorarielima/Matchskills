@@ -10,6 +10,7 @@ import TeacherDashboard from "@/pages/teacher-dashboard";
 import CreateClass from "@/pages/create-class";
 import StudentForm from "@/pages/student-form";
 import ResponsesView from "@/pages/responses-view";
+import GroupDivision from "@/pages/group-division";
 
 function Router() {
   const { user, isLoading } = useAuth();
@@ -28,6 +29,7 @@ function Router() {
           <Route path="/create-class" component={CreateClass} />
           <Route path="/edit-class/:classId" component={CreateClass} />
           <Route path="/class/:classId/responses" component={ResponsesView} />
+          <Route path="/class/:classId/groups" component={GroupDivision} />
         </>
       )}
       <Route component={NotFound} />

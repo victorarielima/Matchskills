@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import { insertClassSchema, insertFormQuestionSchema } from "@shared/schema";
+import { questionTemplates, applyTemplate } from "@/lib/questionTemplates";
 import { z } from "zod";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Nav from "@/components/ui/nav";
 import FormBuilder from "@/components/forms/form-builder";
-import { X, Plus, FileText } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { X, Plus, FileText, Layers, ChevronDown } from "lucide-react";
 import type { InsertClass, InsertFormQuestion, Class, FormQuestion } from "@shared/schema";
 
 const createClassFormSchema = insertClassSchema.extend({
@@ -199,6 +201,15 @@ export default function CreateClass() {
     });
   };
 
+  const applyQuestionTemplate = (templateId: string) => {
+    const templateQuestions = applyTemplate(templateId);
+    setQuestions(templateQuestions);
+    toast({
+      title: "Template aplicado!",
+      description: `${templateQuestions.length} perguntas foram adicionadas do template.`,
+    });
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -306,20 +317,60 @@ export default function CreateClass() {
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white" style={getGlowStyle('#8b5cf6')}>Formulário de Avaliação</h2>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setQuestions([...questions, {
-                        type: "text",
-                        question: "",
-                        order: questions.length + 1,
-                        isRequired: false,
-                      }])}
-                      style={getButtonStyle()}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Adicionar Pergunta
-                    </Button>
+                    <div className="flex items-center space-x-3">
+                      {/* Template Dropdown Button */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                          >
+                            <Layers className="mr-2 h-4 w-4" />
+                            Templates
+                            <ChevronDown className="ml-1 h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-80">
+                          {questionTemplates.map((template) => (
+                            <DropdownMenuItem
+                              key={template.id}
+                              className="cursor-pointer p-3 transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-950/50 dark:hover:to-indigo-950/50 hover:shadow-sm border-l-4 border-transparent hover:border-blue-500 dark:hover:border-blue-400"
+                              onClick={() => applyQuestionTemplate(template.id)}
+                            >
+                              <div className="flex flex-col space-y-1">
+                                <div className="font-medium text-gray-900 dark:text-gray-100 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+                                  {template.name}
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                                  {template.description}
+                                </div>
+                                <div className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors font-medium">
+                                  {template.questions.length} perguntas
+                                </div>
+                              </div>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      
+                      {/* Add Question Button */}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setQuestions([...questions, {
+                          type: "text",
+                          question: "",
+                          order: questions.length + 1,
+                          isRequired: false,
+                        }])}
+                        style={getButtonStyle()}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Adicionar Pergunta
+                      </Button>
+                    </div>
                   </div>
 
                   <FormBuilder

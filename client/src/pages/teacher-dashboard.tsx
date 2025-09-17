@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import Nav from "@/components/ui/nav";
-import { Plus, Users, FileText, BarChart3, Edit, Eye, MoreVertical, Trash2, Pause, Play, Palette, PencilIcon } from "lucide-react";
+import { Plus, Users, FileText, BarChart3, Edit, Eye, MoreVertical, Trash2, Pause, Play, Palette, PencilIcon, Shuffle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Class } from "@shared/schema";
 
@@ -519,6 +519,18 @@ export default function TeacherDashboard() {
                         >
                           <Eye className="mr-1 h-4 w-4" />
                           Respostas
+                        </Button>
+                      </div>
+                      
+                      <div className="mb-4">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="w-full bg-white bg-opacity-20 hover:bg-opacity-30 text-white border-0"
+                          onClick={() => setLocation(`/class/${classItem.id}/groups`)}
+                        >
+                          <Shuffle className="mr-1 h-4 w-4" />
+                          Dividir Grupos
                         </Button>
                       </div>
                       

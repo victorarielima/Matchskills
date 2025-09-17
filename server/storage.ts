@@ -5,6 +5,8 @@ import {
   classes,
   formQuestions,
   formResponses,
+  groupDivisions,
+  groupMembers,
   type User,
   type RegisterUser,
   type Class,
@@ -13,6 +15,10 @@ import {
   type InsertFormQuestion,
   type FormResponse,
   type InsertFormResponse,
+  type GroupDivision,
+  type InsertGroupDivision,
+  type GroupMember,
+  type InsertGroupMember,
 } from "../shared/schema.js";
 import { randomBytes } from "crypto";
 import bcrypt from "bcrypt";
@@ -43,6 +49,13 @@ export interface IStorage {
   submitFormResponse(response: InsertFormResponse): Promise<FormResponse>;
   getClassResponses(classId: string): Promise<FormResponse[]>;
   getResponseById(responseId: string): Promise<FormResponse | undefined>;
+  
+  // Group division operations
+  getGroupDivisions(classId: string): Promise<GroupDivision[]>;
+  createGroupDivision(data: { classId: string; name: string; membersPerGroup: number; prompt?: string; groups: any[] }): Promise<GroupDivision>;
+  getGroupMembers(divisionId: string): Promise<any[]>;
+  updateGroupDivision(divisionId: string, data: { name: string; membersPerGroup: number; prompt: string; groups: any[] }): Promise<void>;
+  deleteGroupDivision(divisionId: string): Promise<void>;
 }
 
 function generateClassCode(): string {
@@ -323,6 +336,161 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error getting response by id:', error);
       return undefined;
+    }
+  }
+
+  // Group division operations
+  async getGroupDivisions(classId: string): Promise<GroupDivision[]> {
+    try {
+      const result = await db
+        .select()
+        .from(groupDivisions)
+        .where(eq(groupDivisions.classId, classId))
+        .orderBy(desc(groupDivisions.createdAt));
+      return result;
+    } catch (error) {
+      console.error('Error getting group divisions:', error);
+      return [];
+    }
+  }
+
+  async createGroupDivision(data: { 
+    classId: string; 
+    name: string; 
+    membersPerGroup: number; 
+    prompt?: string; 
+    groups: any[] 
+  }): Promise<GroupDivision> {
+    try {
+      // Create the division
+      const divisionData: InsertGroupDivision = {
+        classId: data.classId,
+        name: data.name,
+        membersPerGroup: data.membersPerGroup,
+        prompt: data.prompt || null,
+      };
+
+      const [division] = await db.insert(groupDivisions).values(divisionData).returning();
+
+      // Create group members
+      const memberData: InsertGroupMember[] = [];
+      for (const group of data.groups) {
+        for (const member of group.members) {
+          memberData.push({
+            divisionId: division.id,
+            groupNumber: group.groupNumber,
+            formResponseId: member.id,
+          });
+        }
+      }
+
+      if (memberData.length > 0) {
+        await db.insert(groupMembers).values(memberData);
+      }
+
+      return division;
+    } catch (error) {
+      console.error('Error creating group division:', error);
+      throw new Error('Failed to create group division');
+    }
+  }
+
+  async getGroupMembers(divisionId: string): Promise<any[]> {
+    try {
+      const result = await db
+        .select({
+          groupNumber: groupMembers.groupNumber,
+          formResponseId: groupMembers.formResponseId,
+          studentName: formResponses.studentName,
+          studentEmail: formResponses.studentEmail,
+          responses: formResponses.responses,
+          submittedAt: formResponses.submittedAt
+        })
+        .from(groupMembers)
+        .innerJoin(formResponses, eq(groupMembers.formResponseId, formResponses.id))
+        .where(eq(groupMembers.divisionId, divisionId))
+        .orderBy(groupMembers.groupNumber, formResponses.studentName);
+
+      // Group by groupNumber
+      const groups: Record<number, any> = {};
+      for (const row of result) {
+        if (!groups[row.groupNumber]) {
+          groups[row.groupNumber] = {
+            groupNumber: row.groupNumber,
+            members: []
+          };
+        }
+        
+        // Create full FormResponse object
+        const member = {
+          id: row.formResponseId,
+          studentName: row.studentName,
+          studentEmail: row.studentEmail,
+          responses: row.responses,
+          submittedAt: row.submittedAt
+        };
+        
+        groups[row.groupNumber].members.push(member);
+      }
+
+      console.log('📊 Groups found for division:', divisionId, Object.values(groups));
+      return Object.values(groups);
+    } catch (error) {
+      console.error('Error getting group members:', error);
+      return [];
+    }
+  }
+
+  async updateGroupDivision(divisionId: string, data: { name: string; membersPerGroup: number; prompt: string; groups: any[] }): Promise<void> {
+    try {
+      await db.transaction(async (tx) => {
+        // Update the division details
+        await tx
+          .update(groupDivisions)
+          .set({
+            name: data.name,
+            membersPerGroup: data.membersPerGroup,
+            prompt: data.prompt,
+            updatedAt: new Date()
+          })
+          .where(eq(groupDivisions.id, divisionId));
+
+        // Delete existing group members
+        await tx
+          .delete(groupMembers)
+          .where(eq(groupMembers.divisionId, divisionId));
+
+        // Insert new group members
+        for (const group of data.groups) {
+          for (const member of group.members) {
+            await tx.insert(groupMembers).values({
+              id: crypto.randomUUID(),
+              divisionId: divisionId,
+              formResponseId: member.id,
+              groupNumber: group.groupNumber,
+              createdAt: new Date()
+            });
+          }
+        }
+      });
+
+      console.log('✅ Group division updated successfully:', divisionId);
+    } catch (error) {
+      console.error('Error updating group division:', error);
+      throw error;
+    }
+  }
+
+  async deleteGroupDivision(divisionId: string): Promise<void> {
+    try {
+      // Delete members first (cascade should handle this, but being explicit)
+      await db.delete(groupMembers).where(eq(groupMembers.divisionId, divisionId));
+      
+      // Delete the division
+      await db.delete(groupDivisions).where(eq(groupDivisions.id, divisionId));
+    } catch (error) {
+      console.error('Error deleting group division:', error);
+      throw new Error('Failed to delete group division');
     }
   }
 }

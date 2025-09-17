@@ -381,6 +381,146 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Group Division Routes
+  
+  /**
+   * GET /api/classes/:classId/group-divisions
+   * Retorna todas as divisões de grupos de uma turma
+   */
+  app.get('/api/classes/:classId/group-divisions', requireAuth, async (req: any, res) => {
+    try {
+      const { classId } = req.params;
+      const teacherId = req.user.id;
+      
+      // Verify ownership
+      const existingClass = await storage.getClassById(classId);
+      if (!existingClass || existingClass.teacherId !== teacherId) {
+        return res.status(404).json({ message: "Class not found or access denied" });
+      }
+
+      const divisions = await storage.getGroupDivisions(classId);
+      res.json(divisions);
+    } catch (error) {
+      console.error("Error fetching group divisions:", error);
+      res.status(500).json({ message: "Failed to fetch group divisions" });
+    }
+  });
+
+  /**
+   * POST /api/classes/:classId/group-divisions
+   * Cria uma nova divisão de grupos
+   */
+  app.post('/api/classes/:classId/group-divisions', requireAuth, async (req: any, res) => {
+    try {
+      const { classId } = req.params;
+      const teacherId = req.user.id;
+      const { name, membersPerGroup, prompt, groups } = req.body;
+      
+      // Verify ownership
+      const existingClass = await storage.getClassById(classId);
+      if (!existingClass || existingClass.teacherId !== teacherId) {
+        return res.status(404).json({ message: "Class not found or access denied" });
+      }
+
+      const division = await storage.createGroupDivision({
+        classId,
+        name,
+        membersPerGroup,
+        prompt,
+        groups
+      });
+      
+      res.json(division);
+    } catch (error) {
+      console.error("Error creating group division:", error);
+      res.status(500).json({ message: "Failed to create group division" });
+    }
+  });
+
+  /**
+   * PUT /api/classes/:classId/group-divisions/:divisionId
+   * Atualiza uma divisão de grupos existente
+   */
+  app.put('/api/classes/:classId/group-divisions/:divisionId', requireAuth, async (req: any, res) => {
+    try {
+      const { classId, divisionId } = req.params;
+      const { name, membersPerGroup, prompt, groups } = req.body;
+      const teacherId = req.user.id;
+      
+      console.log('🔄 Updating group division:', divisionId, 'in class:', classId);
+      
+      // Verify ownership
+      const existingClass = await storage.getClassById(classId);
+      if (!existingClass || existingClass.teacherId !== teacherId) {
+        return res.status(404).json({ message: "Class not found or access denied" });
+      }
+
+      // Update the division
+      await storage.updateGroupDivision(divisionId, {
+        name,
+        membersPerGroup,
+        prompt,
+        groups
+      });
+
+      console.log('✅ Group division updated successfully');
+      res.json({ id: divisionId, message: "Group division updated successfully" });
+    } catch (error) {
+      console.error("Error updating group division:", error);
+      res.status(500).json({ message: "Failed to update group division" });
+    }
+  });
+
+  /**
+   * GET /api/classes/:classId/group-divisions/:divisionId/groups
+   * Retorna os grupos de uma divisão específica
+   */
+  app.get('/api/classes/:classId/group-divisions/:divisionId/groups', requireAuth, async (req: any, res) => {
+    try {
+      const { classId, divisionId } = req.params;
+      const teacherId = req.user.id;
+      
+      console.log('🔍 Loading groups for division:', divisionId, 'in class:', classId);
+      
+      // Verify ownership
+      const existingClass = await storage.getClassById(classId);
+      if (!existingClass || existingClass.teacherId !== teacherId) {
+        console.log('❌ Access denied for class:', classId);
+        return res.status(404).json({ message: "Class not found or access denied" });
+      }
+
+      const groups = await storage.getGroupMembers(divisionId);
+      console.log('✅ Groups loaded successfully:', groups.length, 'groups found');
+      res.json(groups);
+    } catch (error) {
+      console.error("Error fetching group members:", error);
+      res.status(500).json({ message: "Failed to fetch group members" });
+    }
+  });
+
+  /**
+   * DELETE /api/classes/:classId/group-divisions/:divisionId
+   * Exclui uma divisão de grupos
+   */
+  app.delete('/api/classes/:classId/group-divisions/:divisionId', requireAuth, async (req: any, res) => {
+    try {
+      const { classId, divisionId } = req.params;
+      const teacherId = req.user.id;
+      
+      // Verify ownership
+      const existingClass = await storage.getClassById(classId);
+      if (!existingClass || existingClass.teacherId !== teacherId) {
+        return res.status(404).json({ message: "Class not found or access denied" });
+      }
+
+      await storage.deleteGroupDivision(divisionId);
+      res.json({ message: "Group division deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting group division:", error);
+      res.status(500).json({ message: "Failed to delete group division" });
+    }
+  });
+
   // Inicializa o servidor HTTP com as rotas registradas
   const httpServer = createServer(app);
   return httpServer;
