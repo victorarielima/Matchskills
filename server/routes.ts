@@ -499,6 +499,29 @@ export function registerRoutes(app: Express): Server {
   });
 
   /**
+   * DELETE /api/classes/:classId/group-divisions
+   * Exclui todas as divisões de grupos de uma classe
+   */
+  app.delete('/api/classes/:classId/group-divisions', requireAuth, async (req: any, res) => {
+    try {
+      const { classId } = req.params;
+      const teacherId = req.user.id;
+      
+      // Verify ownership
+      const existingClass = await storage.getClassById(classId);
+      if (!existingClass || existingClass.teacherId !== teacherId) {
+        return res.status(404).json({ message: "Class not found or access denied" });
+      }
+
+      await storage.deleteAllGroupDivisionsByClass(classId);
+      res.json({ message: "All group divisions deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting all group divisions:", error);
+      res.status(500).json({ message: "Failed to delete all group divisions" });
+    }
+  });
+
+  /**
    * DELETE /api/classes/:classId/group-divisions/:divisionId
    * Exclui uma divisão de grupos
    */
