@@ -56,6 +56,7 @@ export interface IStorage {
   getGroupMembers(divisionId: string): Promise<any[]>;
   updateGroupDivision(divisionId: string, data: { name: string; membersPerGroup: number; prompt: string; groups: any[] }): Promise<void>;
   deleteGroupDivision(divisionId: string): Promise<void>;
+  deleteAllGroupDivisionsByClass(classId: string): Promise<void>;
 }
 
 function generateClassCode(): string {
@@ -491,6 +492,29 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error deleting group division:', error);
       throw new Error('Failed to delete group division');
+    }
+  }
+
+  async deleteAllGroupDivisionsByClass(classId: string): Promise<void> {
+    try {
+      // First, get all division IDs for this class
+      const divisionsToDelete = await db
+        .select({ id: groupDivisions.id })
+        .from(groupDivisions)
+        .where(eq(groupDivisions.classId, classId));
+      
+      // Delete all members for all divisions of this class
+      for (const division of divisionsToDelete) {
+        await db.delete(groupMembers).where(eq(groupMembers.divisionId, division.id));
+      }
+      
+      // Delete all divisions for this class
+      await db.delete(groupDivisions).where(eq(groupDivisions.classId, classId));
+      
+      console.log(`✅ Deleted ${divisionsToDelete.length} divisions for class ${classId}`);
+    } catch (error) {
+      console.error('Error deleting all group divisions for class:', error);
+      throw new Error('Failed to delete all group divisions for class');
     }
   }
 }

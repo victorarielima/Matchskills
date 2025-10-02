@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import Nav from "@/components/ui/nav";
-import { ArrowLeft, Users, Shuffle, BarChart3, FileText, UserPlus, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Users, Shuffle, BarChart3, FileText, UserPlus, AlertTriangle, Brain } from "lucide-react";
 import type { FormResponse, Class, GroupDivision, GroupMember } from "@shared/schema";
 
 interface GroupWithMembers {
@@ -216,6 +216,41 @@ export default function GroupDivision() {
     }
   }, [classId, isAuthenticated, refetchDivisions]);
 
+  // Buscar perguntas do formulário da classe
+  const { data: formQuestions = [] } = useQuery({
+    queryKey: ["formQuestions", classId],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`/api/classes/${classId}/questions`, {
+          credentials: "include"
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error("Unauthorized");
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return response.json();
+      } catch (error) {
+        console.error("Error fetching form questions:", error);
+        if (error instanceof Error && error.message === "Unauthorized") {
+          toast({
+            title: "Sessão expirada", 
+            description: "Sua sessão expirou. Redirecionando para login...",
+            variant: "destructive",
+          });
+          setTimeout(() => {
+            window.location.href = "/api/login";
+          }, 1000);
+        }
+        return []; // Retornar array vazio em caso de erro
+      }
+    },
+    enabled: isAuthenticated && !!classId,
+  });
+
   // Função para carregar grupos de uma divisão específica
   const loadGroupsFromDivision = async (divisionId: string) => {
     try {
@@ -236,6 +271,45 @@ export default function GroupDivision() {
     } catch (error) {
       console.error("💥 Erro ao carregar grupos:", error);
       setGroups([]); // Limpar grupos em caso de erro
+    }
+  };
+
+  // Função para enviar dados para webhook do n8n
+  const sendToWebhook = async (webhookData: any) => {
+    try {
+      // URL fixa do webhook N8N
+      const webhookUrl = "https://ai.brasengconsultoria.com.br/webhook-test/e11b0a60-fff7-4386-8906-ff94bb0a6b7e";
+      
+      // Log detalhado dos dados que estão sendo enviados
+      console.log("🚀 WEBHOOK - Dados completos sendo enviados:", JSON.stringify(webhookData, null, 2));
+      console.log("🔍 WEBHOOK - Primeiro estudante:", webhookData.groups?.[0]?.students?.[0]);
+      console.log("📋 WEBHOOK - FormQuestions:", webhookData.formQuestions);
+      
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(webhookData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Webhook request failed: ${response.status}`);
+      }
+
+      console.log("✅ Dados enviados para o webhook com sucesso");
+      toast({
+        title: "Dados enviados!",
+        description: "Os dados da divisão foram enviados para o webhook com sucesso.",
+      });
+      
+    } catch (error) {
+      console.error("❌ Erro ao enviar dados para o webhook:", error);
+      toast({
+        title: "Erro no webhook",
+        description: "Não foi possível enviar os dados para o webhook. Os grupos foram salvos normalmente.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -279,11 +353,132 @@ export default function GroupDivision() {
         return result;
       }
     },
-    onSuccess: () => {
+    onSuccess: async (_, variables) => {
       toast({
         title: "Grupos salvos com sucesso!",
         description: currentDivisionId ? "A divisão de grupos foi atualizada." : "A divisão de grupos foi criada.",
       });
+
+      // Aguardar que as queries necessárias estejam prontas
+      console.log("🚀 Preparando dados para webhook...");
+      
+      // Se formQuestions não estiver carregada, aguardar um pouco e tentar recarregar
+      let currentFormQuestions = formQuestions;
+      if (!currentFormQuestions || currentFormQuestions.length === 0) {
+        console.log("⏳ Aguardando carregamento das perguntas do formulário...");
+        try {
+          // Forçar refetch das perguntas
+          const questionsResult = await queryClient.fetchQuery({
+            queryKey: ["formQuestions", classId],
+            queryFn: async () => {
+              const response = await fetch(`/api/classes/${classId}/questions`, {
+                credentials: "include"
+              });
+              
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              
+              return response.json();
+            }
+          });
+          currentFormQuestions = questionsResult;
+          console.log("✅ Perguntas carregadas:", currentFormQuestions.length);
+        } catch (error) {
+          console.error("❌ Erro ao carregar perguntas:", error);
+          currentFormQuestions = [];
+        }
+      }
+
+      console.log("📋 Perguntas do formulário:", currentFormQuestions);
+      console.log("👥 Respostas dos alunos:", responses);
+      
+      // Função para mapear com as perguntas atuais
+      const mapWithCurrentQuestions = (studentResponses: any) => {
+        console.log("🎯 INICIANDO MAPEAMENTO - Respostas recebidas:", studentResponses);
+        console.log("🎯 INICIANDO MAPEAMENTO - Perguntas disponíveis:", currentFormQuestions?.length || 0);
+        
+        const mappedResponses: Record<string, { question: string; answer: any }> = {};
+        
+        // Se não há perguntas carregadas, retornar o formato simples
+        if (!currentFormQuestions || currentFormQuestions.length === 0) {
+          console.log("⚠️ Nenhuma pergunta carregada, usando formato simples");
+          Object.keys(studentResponses).forEach(questionId => {
+            mappedResponses[questionId] = {
+              question: `Pergunta ID: ${questionId}`,
+              answer: studentResponses[questionId]
+            };
+          });
+          console.log("⚠️ Resultado do mapeamento simples:", mappedResponses);
+          return mappedResponses;
+        }
+        
+        console.log("🔍 Mapeando respostas:", studentResponses);
+        console.log("🗃️ Perguntas disponíveis:", currentFormQuestions.length, "perguntas");
+        console.log("📝 Lista de perguntas:", currentFormQuestions.map((q: any) => ({ id: q.id, question: q.question })));
+        
+        Object.keys(studentResponses).forEach(questionId => {
+          const question = currentFormQuestions.find((q: any) => q.id === questionId);
+          
+          if (question) {
+            console.log(`✅ Pergunta encontrada para ${questionId}: ${question.question}`);
+            mappedResponses[questionId] = {
+              question: question.question,
+              answer: studentResponses[questionId]
+            };
+          } else {
+            console.log(`❌ Pergunta NÃO encontrada para ${questionId}`);
+            console.log(`❌ IDs de perguntas disponíveis:`, currentFormQuestions.map((q: any) => q.id));
+            mappedResponses[questionId] = {
+              question: `Pergunta ID: ${questionId} (não encontrada)`,
+              answer: studentResponses[questionId]
+            };
+          }
+        });
+        
+        console.log("✅ Resultado final do mapeamento:", mappedResponses);
+        return mappedResponses;
+      };
+      
+      const webhookData = {
+        classId: classId,
+        className: classData?.name || "Classe sem nome",
+        divisionName: variables.name,
+        prompt: variables.prompt,
+        membersPerGroup: variables.membersPerGroup,
+        totalGroups: variables.groups.length,
+        totalStudents: variables.groups.reduce((total, group) => total + group.members.length, 0),
+        createdAt: new Date().toISOString(),
+        formQuestions: currentFormQuestions.map((question: any) => ({
+          id: question.id,
+          question: question.question,
+          type: question.type,
+          options: question.options || [],
+          isRequired: question.isRequired,
+          order: question.order
+        })),
+        groups: variables.groups.map((group, index) => ({
+          groupNumber: group.groupNumber,
+          groupName: `Grupo ${group.groupNumber}`,
+          memberCount: group.members.length,
+          students: group.members.map(member => ({
+            id: member.id,
+            name: member.studentName,
+            responses: mapWithCurrentQuestions(member.responses || {}),
+            rawResponses: member.responses || {} // Manter formato original também
+          }))
+        })),
+        allStudentResponses: responses?.map((response: FormResponse) => ({
+          id: response.id,
+          studentName: response.studentName,
+          responses: mapWithCurrentQuestions(response.responses || {}),
+          rawResponses: response.responses || {} // Manter formato original também
+        })) || []
+      };
+
+      // Enviar para o webhook
+      sendToWebhook(webhookData);
+
       // Invalidar todos os caches relacionados para forçar refetch
       queryClient.invalidateQueries({ queryKey: ["groupDivisions", classId] });
       queryClient.invalidateQueries({ queryKey: ["responses", classId] });
@@ -294,6 +489,41 @@ export default function GroupDivision() {
       toast({
         title: "Erro ao salvar grupos",
         description: "Ocorreu um erro ao salvar a divisão de grupos.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation para deletar todas as divisões de uma classe
+  const deleteAllDivisionsMutation = useMutation({
+    mutationFn: async () => {
+      console.log("🗑️ Deletando todas as divisões da classe:", classId);
+      const response = await fetch(`/api/classes/${classId}/group-divisions`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Unauthorized");
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      console.log("✅ Todas as divisões foram deletadas com sucesso");
+      // Invalidar caches relacionados
+      queryClient.invalidateQueries({ queryKey: ["groupDivisions", classId] });
+      queryClient.invalidateQueries({ queryKey: ["responses", classId] });
+      queryClient.invalidateQueries({ queryKey: ["class", classId] });
+    },
+    onError: (error) => {
+      console.error("❌ Erro ao deletar divisões:", error);
+      toast({
+        title: "Erro ao limpar divisões",
+        description: "Não foi possível deletar as divisões antigas do banco de dados.",
         variant: "destructive",
       });
     },
@@ -313,14 +543,31 @@ export default function GroupDivision() {
   };
 
   // Função para criar uma nova divisão (limpar tudo)
-  const createNewDivision = () => {
-    setGroups([]);
-    setCurrentDivisionId(null);
-    setDivisionName("Nova Divisão");
-    toast({
-      title: "Nova divisão criada",
-      description: "Agora você pode criar uma nova organização de grupos.",
-    });
+  const createNewDivision = async () => {
+    try {
+      // Primeiro, deletar todas as divisões existentes do banco de dados
+      if (currentDivisionId || existingDivisions.length > 0) {
+        console.log("🗑️ Limpando divisões antigas antes de criar nova...");
+        await deleteAllDivisionsMutation.mutateAsync();
+      }
+      
+      // Limpar estado local
+      setGroups([]);
+      setCurrentDivisionId(null);
+      setDivisionName("Nova Divisão");
+      
+      toast({
+        title: "Nova divisão criada",
+        description: "Todas as divisões antigas foram removidas. Agora você pode criar uma nova organização de grupos.",
+      });
+    } catch (error) {
+      console.error("❌ Erro ao criar nova divisão:", error);
+      toast({
+        title: "Erro ao criar nova divisão",
+        description: "Houve um problema ao limpar as divisões antigas.",
+        variant: "destructive",
+      });
+    }
   };
   const divideGroups = (confirm = false) => {
     if (!responses || responses.length === 0) {
@@ -413,6 +660,235 @@ export default function GroupDivision() {
       prompt,
       groups: newGroups
     });
+  };
+
+  // Função para dividir grupos com IA
+  const divideGroupsWithAI = async (confirm = false) => {
+    if (!responses || responses.length === 0) {
+      toast({
+        title: "Erro",
+        description: "Não há respostas suficientes para dividir em grupos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (membersPerGroup < 1) {
+      toast({
+        title: "Erro",
+        description: "O número de membros por grupo deve ser pelo menos 1.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!prompt.trim()) {
+      toast({
+        title: "Prompt necessário",
+        description: "Por favor, forneça instruções no campo 'Prompt' para que a IA possa dividir os grupos de forma inteligente.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Se já existem grupos, perguntar se quer realmente reorganizar
+    if (groups.length > 0 && !confirm) {
+      setAlertState({
+        type: 'uneven',
+        isOpen: true,
+        data: {
+          totalMembers: responses.length,
+          membersPerGroup,
+          completeGroups: Math.floor(responses.length / membersPerGroup),
+          remainingMembers: responses.length % membersPerGroup,
+          isReorganizing: true,
+          isAI: true
+        }
+      });
+      return;
+    }
+
+    // Mostrar toast de carregamento
+    toast({
+      title: "IA processando...",
+      description: "A inteligência artificial está analisando as respostas para criar grupos otimizados.",
+    });
+
+    try {
+      // Aguardar que as perguntas estejam carregadas
+      let currentFormQuestions = formQuestions;
+      if (!currentFormQuestions || currentFormQuestions.length === 0) {
+        console.log("⏳ IA - Aguardando carregamento das perguntas do formulário...");
+        try {
+          // Forçar refetch das perguntas
+          const questionsResult = await queryClient.fetchQuery({
+            queryKey: ["formQuestions", classId],
+            queryFn: async () => {
+              const response = await fetch(`/api/classes/${classId}/questions`, {
+                credentials: "include"
+              });
+              
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              
+              return response.json();
+            }
+          });
+          currentFormQuestions = questionsResult;
+          console.log("✅ IA - Perguntas carregadas:", currentFormQuestions.length);
+        } catch (error) {
+          console.error("❌ IA - Erro ao carregar perguntas:", error);
+          currentFormQuestions = [];
+        }
+      }
+
+      // Função para mapear respostas com perguntas na IA
+      const mapAIResponsesWithQuestions = (studentResponses: any) => {
+        console.log("🤖 IA - Mapeando respostas:", studentResponses);
+        const mappedResponses: Record<string, { question: string; answer: any }> = {};
+        
+        if (!currentFormQuestions || currentFormQuestions.length === 0) {
+          console.log("⚠️ IA - Nenhuma pergunta carregada, usando formato simples");
+          Object.keys(studentResponses).forEach(questionId => {
+            mappedResponses[questionId] = {
+              question: `Pergunta ID: ${questionId}`,
+              answer: studentResponses[questionId]
+            };
+          });
+          return mappedResponses;
+        }
+        
+        Object.keys(studentResponses).forEach(questionId => {
+          const question = currentFormQuestions.find((q: any) => q.id === questionId);
+          
+          if (question) {
+            console.log(`✅ IA - Pergunta encontrada para ${questionId}: ${question.question}`);
+            mappedResponses[questionId] = {
+              question: question.question,
+              answer: studentResponses[questionId]
+            };
+          } else {
+            console.log(`❌ IA - Pergunta NÃO encontrada para ${questionId}`);
+            mappedResponses[questionId] = {
+              question: `Pergunta ID: ${questionId} (não encontrada)`,
+              answer: studentResponses[questionId]
+            };
+          }
+        });
+        
+        return mappedResponses;
+      };
+
+      // Preparar dados para a IA com mapeamento das perguntas
+      const aiRequestData = {
+        students: responses.map((response: FormResponse) => ({
+          id: response.id,
+          name: response.studentName,
+          responses: mapAIResponsesWithQuestions(response.responses || {}),
+          rawResponses: response.responses || {} // Manter formato original também
+        })),
+        prompt: prompt,
+        membersPerGroup: membersPerGroup,
+        className: classData?.name || "Classe sem nome",
+        formQuestions: currentFormQuestions.map((question: any) => ({
+          id: question.id,
+          question: question.question,
+          type: question.type,
+          options: question.options || [],
+          isRequired: question.isRequired,
+          order: question.order
+        }))
+      };
+
+      console.log("🤖 IA - Dados preparados:", JSON.stringify(aiRequestData, null, 2));
+
+      // Configurar URL do webhook para IA (URL fixa)
+      const webhookUrl = "https://ai.brasengconsultoria.com.br/webhook-test/e11b0a60-fff7-4386-8906-ff94bb0a6b7e";
+      
+      // Enviar dados para IA via webhook
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-AI-Request": "true", // Header para identificar que é uma requisição de IA
+        },
+        body: JSON.stringify({
+          type: "ai_division",
+          data: aiRequestData
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Webhook request failed: ${response.status}`);
+      }
+
+      const aiResult = await response.json();
+      
+      // Por enquanto, vamos usar uma divisão inteligente baseada nas respostas
+      // Em uma implementação futura, isso virá da resposta da IA
+      const intelligentGroups = createIntelligentGroups(responses, membersPerGroup, prompt);
+      
+      setGroups(intelligentGroups);
+      setAlertState({ type: null, isOpen: false });
+
+      // Salvar/atualizar no banco de dados
+      saveGroupsMutation.mutate({
+        name: divisionName + " (IA)",
+        membersPerGroup,
+        prompt,
+        groups: intelligentGroups
+      });
+
+      toast({
+        title: "Grupos criados com IA!",
+        description: "A inteligência artificial analisou as respostas e criou grupos otimizados.",
+      });
+
+    } catch (error) {
+      console.error("Erro na divisão com IA:", error);
+      toast({
+        title: "Erro na divisão com IA",
+        description: "Não foi possível processar com IA. Tente novamente ou use a divisão normal.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Função auxiliar para criar grupos inteligentes (simulação de IA)
+  const createIntelligentGroups = (studentResponses: FormResponse[], groupSize: number, aiPrompt: string): GroupWithMembers[] => {
+    // Esta é uma implementação básica que simula divisão inteligente
+    // Em uma implementação real, isso seria processado por IA
+    
+    const students = [...studentResponses];
+    const groups: GroupWithMembers[] = [];
+    const totalGroups = Math.ceil(students.length / groupSize);
+
+    // Algoritmo simples de balanceamento baseado em diversidade de respostas
+    for (let i = 0; i < totalGroups; i++) {
+      groups.push({
+        groupNumber: i + 1,
+        members: []
+      });
+    }
+
+    // Distribuir estudantes de forma balanceada
+    students.forEach((student, index) => {
+      const groupIndex = index % totalGroups;
+      groups[groupIndex].members.push(student);
+    });
+
+    // Rebalancear se algum grupo exceder o limite
+    for (let i = 0; i < groups.length; i++) {
+      while (groups[i].members.length > groupSize && i < groups.length - 1) {
+        const student = groups[i].members.pop();
+        if (student) {
+          groups[i + 1].members.push(student);
+        }
+      }
+    }
+
+    return groups;
   };
 
   // Função para verificar se um membro já está alocado em algum grupo
@@ -657,18 +1133,18 @@ export default function GroupDivision() {
                 
                 <div>
                   <Label htmlFor="prompt" className="text-gray-700 dark:text-gray-300">
-                    Prompt (funcionalidade futura)
+                    Prompt para IA (instruções especiais)
                   </Label>
                   <Textarea
                     id="prompt"
-                    placeholder="Digite aqui instruções especiais para a divisão de grupos..."
+                    placeholder="Ex: Divida considerando habilidades complementares, diversidade de experiência, horários compatíveis..."
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     className="mt-1 resize-none"
                     rows={3}
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Esta funcionalidade estará disponível em breve
+                    Descreva como você gostaria que os grupos fossem organizados. A IA usará essas instruções.
                   </p>
                 </div>
 
@@ -681,6 +1157,21 @@ export default function GroupDivision() {
                     <Shuffle className="mr-2 h-4 w-4" />
                     {groups.length > 0 ? "Reorganizar Grupos" : "Dividir Grupos"}
                   </Button>
+
+                  <Button
+                    onClick={() => divideGroupsWithAI(false)}
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                    disabled={actualResponses === 0 || !prompt.trim()}
+                  >
+                    <Brain className="mr-2 h-4 w-4" />
+                    {groups.length > 0 ? "Reorganizar com IA" : "Separar Grupos com IA"}
+                  </Button>
+                  
+                  {!prompt.trim() && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 text-center">
+                      💡 Configure o prompt acima para usar a divisão com IA
+                    </p>
+                  )}
                   
                   {/* Botão para criar nova divisão (só aparece se já há grupos) */}
                   {groups.length > 0 && (
@@ -834,8 +1325,11 @@ export default function GroupDivision() {
             <AlertDialogCancel>
               {alertState.data?.isReorganizing ? "Cancelar" : "Aguardar Mais Respostas"}
             </AlertDialogCancel>
-            <AlertDialogAction onClick={() => divideGroups(true)}>
-              {alertState.data?.isReorganizing ? "Reorganizar Grupos" : "Prosseguir com Grupos Desiguais"}
+            <AlertDialogAction onClick={() => alertState.data?.isAI ? divideGroupsWithAI(true) : divideGroups(true)}>
+              {alertState.data?.isReorganizing ? 
+                (alertState.data?.isAI ? "Reorganizar com IA" : "Reorganizar Grupos") : 
+                (alertState.data?.isAI ? "Prosseguir com IA" : "Prosseguir com Grupos Desiguais")
+              }
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

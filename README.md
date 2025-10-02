@@ -7,6 +7,8 @@ Sistema de gestão de turmas e formulários de avaliação desenvolvido com Reac
 - ✅ **Gestão de Turmas**: Criação, edição e gerenciamento de turmas
 - ✅ **Formulários Dinâmicos**: Criação de formulários de avaliação personalizados
 - ✅ **Dashboard Interativo**: Visualização de dados e métricas em tempo real
+- ✅ **Divisão de Grupos**: Sistema automático de divisão de alunos em grupos
+- ✅ **Integração N8N**: Webhook para envio automático de dados de divisão
 - ✅ **Autenticação**: Sistema de login seguro
 - ✅ **Dark Mode**: Interface adaptável com modo escuro/claro
 - ✅ **Responsive Design**: Interface otimizada para desktop e mobile
@@ -159,7 +161,33 @@ Para contribuir com o projeto:
 4. Faça um push para a branch
 5. Abra um Pull Request
 
-## 📄 Licença
+## � Integração com N8N
+
+O ClassConnect possui integração nativa com N8N para automação de processos. Quando os grupos são divididos, os dados podem ser enviados automaticamente para um webhook configurado.
+
+### Configuração
+
+1. Configure sua URL de webhook N8N na página de divisão de grupos
+2. Os dados serão enviados automaticamente quando os grupos forem criados/atualizados
+
+### Dados Enviados
+
+- Nome dos alunos e suas respostas
+- Configurações da divisão (prompt, quantidade por grupo)
+- Nome da divisão e dados da turma
+- Estrutura completa dos grupos formados
+
+Para mais detalhes, consulte: [WEBHOOK_N8N_GUIDE.md](./WEBHOOK_N8N_GUIDE.md)
+
+### Teste do Webhook
+
+Use o script de teste incluído:
+
+```bash
+node test-webhook.js https://seu-n8n.com/webhook/group-division
+```
+
+## �📄 Licença
 
 Este projeto é propriedade da equipe e está sob licença privada.
 
