@@ -11,43 +11,57 @@
   --popover: hsl(0 0% 100%);
   --popover-foreground: hsl(210 25% 7.8431%);
   
-  /* MatchSkills Brand Colors */
-  --matchskills-blue-50: hsl(213 100% 97%);
-  --matchskills-blue-100: hsl(214 95% 93%);
-  --matchskills-blue-500: hsl(217 91% 60%);
-  --matchskills-blue-600: hsl(221 83% 53%);
-  --matchskills-blue-700: hsl(224 76% 48%);
-  --matchskills-blue-800: hsl(226 71% 40%);
-  --matchskills-blue-900: hsl(224 64% 33%);
+  /* Shoplay-inspired Brand Colors */
+  --primary-purple: #7D53F3;
+  --primary-purple-light: #9B7EF4;
+  --primary-purple-dark: #6B46E3;
+  --secondary-green: #54BF7B;
+  --secondary-green-light: #70D095;
+  --secondary-green-dark: #3AAB63;
+  --accent-coral: #FF7956;
+  --accent-coral-light: #FF947D;
+  --accent-coral-dark: #E85A39;
+  --neutral-dark: #071724;
+  --neutral-gray: #F5F6FA;
+  --neutral-light: #FFFFFF;
   
-  --matchskills-green-50: hsl(138 76% 97%);
-  --matchskills-green-100: hsl(141 84% 93%);
-  --matchskills-green-400: hsl(142 69% 58%);
-  --matchskills-green-500: hsl(142 71% 45%);
-  --matchskills-green-600: hsl(142 76% 36%);
-  --matchskills-green-700: hsl(142 72% 29%);
+  /* MatchSkills Brand Colors - Updated */
+  --matchskills-blue-50: hsl(245 100% 97%);
+  --matchskills-blue-100: hsl(245 95% 93%);
+  --matchskills-blue-500: var(--primary-purple);
+  --matchskills-blue-600: var(--primary-purple-dark);
+  --matchskills-blue-700: #5A3BD1;
+  --matchskills-blue-800: #4A2FB8;
+  --matchskills-blue-900: var(--neutral-dark);
   
-  --matchskills-teal-400: hsl(172 66% 50%);
-  --matchskills-teal-500: hsl(173 80% 40%);
-  --matchskills-teal-600: hsl(175 84% 32%);
+  --matchskills-green-50: hsl(145 76% 97%);
+  --matchskills-green-100: hsl(145 84% 93%);
+  --matchskills-green-400: var(--secondary-green-light);
+  --matchskills-green-500: var(--secondary-green);
+  --matchskills-green-600: var(--secondary-green-dark);
+  --matchskills-green-700: #2E9551;
   
-  --primary: var(--matchskills-blue-600);
+  --matchskills-teal-400: var(--accent-coral-light);
+  --matchskills-teal-500: var(--accent-coral);
+  --matchskills-teal-600: var(--accent-coral-dark);
+  
+  --primary: var(--primary-purple);
   --primary-50: var(--matchskills-blue-50);
   --primary-100: var(--matchskills-blue-100);
-  --primary-500: var(--matchskills-blue-500);
-  --primary-600: var(--matchskills-blue-600);
+  --primary-500: var(--primary-purple);
+  --primary-600: var(--primary-purple-dark);
   --primary-700: var(--matchskills-blue-700);
   --primary-foreground: hsl(0 0% 100%);
-  --secondary: var(--matchskills-green-500);
+  --secondary: var(--secondary-green);
   --secondary-50: var(--matchskills-green-50);
   --secondary-100: var(--matchskills-green-100);
-  --secondary-500: var(--matchskills-green-500);
-  --secondary-600: var(--matchskills-green-600);
+  --secondary-500: var(--secondary-green);
+  --secondary-600: var(--secondary-green-dark);
   --secondary-foreground: hsl(0 0% 100%);
-  --accent: var(--matchskills-teal-500);
-  --accent-100: hsl(172 100% 94%);
-  --accent-500: var(--matchskills-teal-500);
-  --accent-600: var(--matchskills-teal-600);
+  --accent: var(--accent-coral);
+  --accent-100: hsl(15 100% 94%);
+  --accent-500: var(--accent-coral);
+  --accent-600: var(--accent-coral-dark);
   --accent-foreground: hsl(0 0% 100%);
   --muted: hsl(240 1.9608% 90%);
   --muted-foreground: hsl(210 25% 7.8431%);

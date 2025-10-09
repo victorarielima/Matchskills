@@ -14,17 +14,19 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { GraduationCap, Users, Send, ArrowLeft, Lock } from "lucide-react";
+import AutoDarkModeDetector from "@/components/ui/auto-dark-mode-detector";
+import AnimatedLogo from "@/components/ui/animated-logo";
 import type { Class, FormQuestion } from "@shared/schema";
 
 const submitFormSchema = z.object({
-  studentName: z.string().min(1, "Nome é obrigatório"),
-  studentEmail: z.string().email("Email inválido").optional().or(z.literal("")),
+  participantName: z.string().min(1, "Nome é obrigatório"),
+  participantEmail: z.string().email("Email inválido").optional().or(z.literal("")),
   responses: z.record(z.string()),
 });
 
 type SubmitFormData = z.infer<typeof submitFormSchema>;
 
-export default function StudentForm() {
+export default function ParticipantForm() {
   const { code } = useParams<{ code: string }>();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -48,8 +50,8 @@ export default function StudentForm() {
   const form = useForm<SubmitFormData>({
     resolver: zodResolver(submitFormSchema),
     defaultValues: {
-      studentName: "",
-      studentEmail: "",
+      participantName: "",
+      participantEmail: "",
       responses: {},
     },
   });
@@ -99,8 +101,8 @@ export default function StudentForm() {
       });
       
       const submissionData = {
-        studentName: data.studentName,
-        studentEmail: data.studentEmail || null,
+        studentName: data.participantName,
+        studentEmail: data.participantEmail || null,
         responses: responsesByQuestionId,
       };
       
@@ -134,7 +136,7 @@ export default function StudentForm() {
       } else {
         toast({
           title: "Erro",
-          description: "Turma não encontrada ou código inválido.",
+          description: "Grupo não encontrado ou código inválido.",
           variant: "destructive",
         });
         setTimeout(() => setLocation("/"), 2000);
@@ -161,10 +163,11 @@ export default function StudentForm() {
 
   if (classLoading || questionsLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <AutoDarkModeDetector />
         <div className="text-center">
           <GraduationCap className="mx-auto h-12 w-12 text-primary mb-4" />
-          <p className="text-gray-600">Carregando formulário...</p>
+          <p className="text-gray-600 dark:text-gray-300">Carregando formulário...</p>
         </div>
       </div>
     );
@@ -173,25 +176,27 @@ export default function StudentForm() {
   // Check if form is inactive/locked FIRST
   if (isClassClosed) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <AutoDarkModeDetector />
         <div className="max-w-md mx-auto px-4">
-          <Card className="text-center border-blue-200 bg-blue-50">
+          <AnimatedLogo size="lg" showText={true} className="justify-center mb-6" />
+          <Card className="text-center border-blue-200 bg-blue-50 dark:border-purple-700 dark:bg-purple-900/20">
             <CardContent className="p-8">
-              <div className="mx-auto h-16 w-16 text-blue-600 mb-4 flex items-center justify-center">
+              <div className="mx-auto h-16 w-16 text-blue-600 dark:text-purple-400 mb-4 flex items-center justify-center">
                 <Lock className="w-16 h-16" />
               </div>
-              <h1 className="text-xl font-bold text-blue-800 mb-3">Formulário Fechado</h1>
-              <p className="text-blue-700 mb-4 leading-relaxed">
+              <h1 className="text-xl font-bold text-blue-800 dark:text-purple-200 mb-3">Formulário Fechado</h1>
+              <p className="text-blue-700 dark:text-purple-300 mb-4 leading-relaxed">
                 Este formulário foi fechado pelo organizador e não está mais disponível para respostas.
               </p>
-              <p className="text-blue-600 text-sm mb-6">
+              <p className="text-blue-600 dark:text-purple-400 text-sm mb-6">
                 Entre em contato com o operador para verificar como proceder.
               </p>
               <div className="space-y-3">
                 <Button 
                   onClick={() => setLocation("/")} 
                   variant="outline"
-                  className="w-full border-blue-300 text-blue-700 hover:bg-blue-100"
+                  className="w-full border-blue-300 text-blue-700 hover:bg-blue-100 dark:border-purple-500 dark:text-purple-300 dark:hover:bg-purple-900/30"
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Voltar para Página Inicial
@@ -206,25 +211,27 @@ export default function StudentForm() {
 
   if (!classData) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <AutoDarkModeDetector />
         <div className="max-w-md mx-auto px-4">
-          <Card className="text-center border-red-200 bg-red-50">
+          <AnimatedLogo size="lg" showText={true} className="justify-center mb-6" />
+          <Card className="text-center border-red-200 bg-red-50 dark:border-red-700 dark:bg-red-900/20">
             <CardContent className="p-8">
-              <div className="mx-auto h-16 w-16 text-red-600 mb-4 flex items-center justify-center">
+              <div className="mx-auto h-16 w-16 text-red-600 dark:text-red-400 mb-4 flex items-center justify-center">
                 <GraduationCap className="w-16 h-16" />
               </div>
-              <h1 className="text-xl font-bold text-red-800 mb-3">Turma Não Encontrada</h1>
-              <p className="text-red-700 mb-4 leading-relaxed">
-                O código informado não corresponde a nenhuma turma ativa ou o link pode estar incorreto.
+              <h1 className="text-xl font-bold text-red-800 dark:text-red-200 mb-3">Grupo Não Encontrado</h1>
+              <p className="text-red-700 dark:text-red-300 mb-4 leading-relaxed">
+                O código informado não corresponde a nenhum grupo ativo ou o link pode estar incorreto.
               </p>
-              <p className="text-red-600 text-sm mb-6">
+              <p className="text-red-600 dark:text-red-400 text-sm mb-6">
                 Verifique o código e tente novamente.
               </p>
               <div className="space-y-3">
                 <Button 
                   onClick={() => setLocation("/")} 
                   variant="outline"
-                  className="w-full border-red-300 text-red-700 hover:bg-red-100"
+                  className="w-full border-red-300 text-red-700 hover:bg-red-100 dark:border-red-500 dark:text-red-300 dark:hover:bg-red-900/30"
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Voltar para Digitar Código
@@ -241,13 +248,15 @@ export default function StudentForm() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <AutoDarkModeDetector />
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Card className="text-center">
+          <AnimatedLogo size="lg" showText={true} className="justify-center mb-6" />
+          <Card className="text-center dark:bg-gray-800 dark:border-gray-700">
             <CardContent className="p-8">
               <GraduationCap className="mx-auto h-16 w-16 text-secondary mb-4" />
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Respostas Enviadas!</h1>
-              <p className="text-gray-600 mb-4">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Respostas Enviadas!</h1>
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
                 Obrigado por participar. Suas respostas foram registradas com sucesso.
               </p>
               <Button onClick={() => setLocation("/")} variant="outline">
@@ -261,16 +270,18 @@ export default function StudentForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <AutoDarkModeDetector />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <AnimatedLogo size="lg" showText={true} className="justify-center mb-6" />
         {/* Class Header */}
-        <Card className="mb-6 border border-gray-200">
+        <Card className="mb-6 border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
           <CardContent className="p-6">
             <div className="text-center">
-              <Users className="mx-auto h-12 w-12 text-primary mb-4" />
-              <h1 className="text-2xl font-bold text-gray-900">{classData?.name}</h1>
-              <p className="text-gray-600 mt-2">Preencha o formulário abaixo</p>
-              <div className="mt-4 inline-flex items-center px-3 py-1 rounded-full text-sm bg-primary-100 text-primary-800">
+              <Users className="mx-auto h-12 w-12 text-blue-600 dark:text-purple-500 mb-4" />
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{classData?.name}</h1>
+              <p className="text-gray-600 dark:text-gray-300 mt-2">Preencha o formulário abaixo</p>
+              <div className="mt-4 inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800 dark:bg-purple-900/30 dark:text-purple-300">
                 <span className="font-mono">Código: {classData?.code}</span>
               </div>
             </div>
@@ -299,31 +310,31 @@ export default function StudentForm() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* Student Info */}
               <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-gray-900 mb-3">Informações do Aluno</h3>
+                <h3 className="text-sm font-medium text-gray-900 mb-3">Informações do Participante</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="studentName">Nome Completo *</Label>
+                    <Label htmlFor="participantName">Nome Completo *</Label>
                     <Input
-                      {...form.register("studentName")}
+                      {...form.register("participantName")}
                       className="mt-1"
                       required
                     />
-                    {form.formState.errors.studentName && (
+                    {form.formState.errors.participantName && (
                       <p className="text-red-500 text-sm mt-1">
-                        {form.formState.errors.studentName.message}
+                        {form.formState.errors.participantName.message}
                       </p>
                     )}
                   </div>
                   <div>
-                    <Label htmlFor="studentEmail">E-mail</Label>
+                    <Label htmlFor="participantEmail">E-mail</Label>
                     <Input
-                      {...form.register("studentEmail")}
+                      {...form.register("participantEmail")}
                       type="email"
                       className="mt-1"
                     />
-                    {form.formState.errors.studentEmail && (
+                    {form.formState.errors.participantEmail && (
                       <p className="text-red-500 text-sm mt-1">
-                        {form.formState.errors.studentEmail.message}
+                        {form.formState.errors.participantEmail.message}
                       </p>
                     )}
                   </div>
@@ -431,7 +442,7 @@ export default function StudentForm() {
                   </Button>
                 </div>
                 <p className="text-xs text-gray-500 mt-2 text-center">
-                  Suas respostas serão enviadas de forma anônima para análise do professor
+                  Suas respostas serão enviadas de forma anônima para análise do organizador
                 </p>
               </div>
             </form>

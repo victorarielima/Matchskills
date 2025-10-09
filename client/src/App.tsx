@@ -6,11 +6,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
-import TeacherDashboard from "@/pages/teacher-dashboard";
+import OrganizerDashboard from "@/pages/organizer-dashboard";
 import CreateClass from "@/pages/create-class";
-import StudentForm from "@/pages/student-form";
+import ParticipantForm from "@/pages/participant-form";
 import ResponsesView from "@/pages/responses-view";
 import GroupDivision from "@/pages/group-division";
+import Reports from "@/pages/reports";
 
 function Router() {
   const { user, isLoading } = useAuth();
@@ -21,15 +22,16 @@ function Router() {
       {isLoading || !isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
-          <Route path="/class/:code" component={StudentForm} />
+          <Route path="/class/:code" component={ParticipantForm} />
         </>
       ) : (
         <>
-          <Route path="/" component={TeacherDashboard} />
+          <Route path="/" component={OrganizerDashboard} />
           <Route path="/create-class" component={CreateClass} />
           <Route path="/edit-class/:classId" component={CreateClass} />
           <Route path="/class/:classId/responses" component={ResponsesView} />
           <Route path="/class/:classId/groups" component={GroupDivision} />
+          <Route path="/reports" component={Reports} />
         </>
       )}
       <Route component={NotFound} />

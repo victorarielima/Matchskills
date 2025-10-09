@@ -41,6 +41,37 @@ export function registerRoutes(app: Express): Server {
   });
 
   /**
+   * GET /api/recent-responses
+   * Retorna as respostas mais recentes do professor
+   */
+  app.get('/api/recent-responses', requireAuth, async (req: any, res) => {
+    try {
+      const teacherId = req.user.id;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const responses = await storage.getRecentResponsesByTeacher(teacherId, limit);
+      res.json(responses);
+    } catch (error) {
+      console.error("Error fetching recent responses:", error);
+      res.status(500).json({ message: "Failed to fetch recent responses" });
+    }
+  });
+
+  /**
+   * GET /api/group-stats
+   * Retorna estatísticas sobre grupos criados pelo professor
+   */
+  app.get('/api/group-stats', requireAuth, async (req: any, res) => {
+    try {
+      const teacherId = req.user.id;
+      const stats = await storage.getGroupStatsByTeacher(teacherId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching group stats:", error);
+      res.status(500).json({ message: "Failed to fetch group stats" });
+    }
+  });
+
+  /**
    * POST /api/classes
    * Cria uma nova turma e suas perguntas associadas
    * Espera classData e questions no corpo da requisição
@@ -541,6 +572,104 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error deleting group division:", error);
       res.status(500).json({ message: "Failed to delete group division" });
+    }
+  });
+
+  /**
+   * GET /api/analytics/:classId
+   * Retorna análises detalhadas de um formulário
+   */
+  app.get('/api/analytics/:classId', requireAuth, async (req: any, res) => {
+    try {
+      const { classId } = req.params;
+      const teacherId = req.user.id;
+      
+      // Verify ownership
+      const classInfo = await storage.getClassById(classId);
+      if (!classInfo || classInfo.teacherId !== teacherId) {
+        return res.status(404).json({ message: "Class not found or access denied" });
+      }
+
+      // Get questions and responses
+      const questions = await storage.getFormQuestions(classId);
+      const responses = await storage.getClassResponses(classId);
+
+      // Calculate analytics for each question
+      const questionAnalytics = questions.map(question => {
+        const questionResponses = responses
+          .map((r: any) => {
+            try {
+              const responseData = typeof r.responses === 'string' 
+                ? JSON.parse(r.responses) 
+                : r.responses;
+              return responseData[question.id];
+            } catch {
+              return null;
+            }
+          })
+          .filter(Boolean);
+
+        // Count response distribution
+        const distribution: Record<string, number> = {};
+        let sum = 0;
+        let count = 0;
+
+        questionResponses.forEach((response: any) => {
+          if (Array.isArray(response)) {
+            // For checkbox questions
+            response.forEach(item => {
+              distribution[item] = (distribution[item] || 0) + 1;
+            });
+          } else if (response !== null && response !== undefined) {
+            const responseStr = String(response);
+            distribution[responseStr] = (distribution[responseStr] || 0) + 1;
+            
+            // Calculate average for scale questions
+            if (question.type === 'scale') {
+              const numValue = Number(response);
+              if (!isNaN(numValue)) {
+                sum += numValue;
+                count++;
+              }
+            }
+          }
+        });
+
+        const analytics: any = {
+          questionId: question.id,
+          question: question.question,
+          type: question.type,
+          totalResponses: questionResponses.length,
+          responseDistribution: distribution,
+        };
+
+        if (question.type === 'scale' && count > 0) {
+          analytics.averageValue = sum / count;
+        }
+
+        return analytics;
+      });
+
+      const totalResponses = responses.length;
+      const completionRate = classInfo.studentLimit 
+        ? (totalResponses / classInfo.studentLimit) * 100 
+        : 0;
+
+      const analytics = {
+        classInfo,
+        totalResponses,
+        questions,
+        questionAnalytics,
+        completionRate,
+        lastResponseDate: responses.length > 0 
+          ? responses[responses.length - 1].submittedAt 
+          : null,
+      };
+
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      res.status(500).json({ message: "Failed to fetch analytics" });
     }
   });
 

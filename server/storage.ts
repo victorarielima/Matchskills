@@ -1,4 +1,4 @@
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, inArray } from "drizzle-orm";
 import { db } from "./db.js";
 import {
   users,
@@ -49,6 +49,8 @@ export interface IStorage {
   submitFormResponse(response: InsertFormResponse): Promise<FormResponse>;
   getClassResponses(classId: string): Promise<FormResponse[]>;
   getResponseById(responseId: string): Promise<FormResponse | undefined>;
+  getRecentResponsesByTeacher(teacherId: string, limit?: number): Promise<Array<FormResponse & { className: string }>>;
+
   
   // Group division operations
   getGroupDivisions(classId: string): Promise<GroupDivision[]>;
@@ -57,6 +59,11 @@ export interface IStorage {
   updateGroupDivision(divisionId: string, data: { name: string; membersPerGroup: number; prompt: string; groups: any[] }): Promise<void>;
   deleteGroupDivision(divisionId: string): Promise<void>;
   deleteAllGroupDivisionsByClass(classId: string): Promise<void>;
+  getGroupStatsByTeacher(teacherId: string): Promise<{
+    totalGroupsCreated: number;
+    studentsInGroups: number;
+    studentsWithoutGroup: number;
+  }>;
 }
 
 function generateClassCode(): string {
@@ -340,6 +347,31 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getRecentResponsesByTeacher(teacherId: string, limit: number = 10): Promise<Array<FormResponse & { className: string }>> {
+    try {
+      const result = await db
+        .select({
+          id: formResponses.id,
+          classId: formResponses.classId,
+          studentName: formResponses.studentName,
+          studentEmail: formResponses.studentEmail,
+          responses: formResponses.responses,
+          submittedAt: formResponses.submittedAt,
+          className: classes.name,
+        })
+        .from(formResponses)
+        .innerJoin(classes, eq(formResponses.classId, classes.id))
+        .where(eq(classes.teacherId, teacherId))
+        .orderBy(desc(formResponses.submittedAt))
+        .limit(limit);
+
+      return result;
+    } catch (error) {
+      console.error('Error getting recent responses:', error);
+      return [];
+    }
+  }
+
   // Group division operations
   async getGroupDivisions(classId: string): Promise<GroupDivision[]> {
     try {
@@ -515,6 +547,83 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error deleting all group divisions for class:', error);
       throw new Error('Failed to delete all group divisions for class');
+    }
+  }
+
+  async getGroupStatsByTeacher(teacherId: string): Promise<{
+    totalGroupsCreated: number;
+    studentsInGroups: number;
+    studentsWithoutGroup: number;
+  }> {
+    try {
+      // Get all classes for this teacher
+      const teacherClasses = await this.getTeacherClasses(teacherId);
+      const classIds = teacherClasses.map(c => c.id);
+      
+      if (classIds.length === 0) {
+        return {
+          totalGroupsCreated: 0,
+          studentsInGroups: 0,
+          studentsWithoutGroup: 0,
+        };
+      }
+
+      // Count total unique groups created across all divisions
+      // A group is identified by (divisionId, groupNumber)
+      const groupsResult = await db
+        .select({
+          divisionId: groupMembers.divisionId,
+          groupNumber: groupMembers.groupNumber,
+        })
+        .from(groupMembers)
+        .innerJoin(groupDivisions, eq(groupMembers.divisionId, groupDivisions.id))
+        .where(inArray(groupDivisions.classId, classIds))
+        .groupBy(groupMembers.divisionId, groupMembers.groupNumber);
+
+      const totalGroups = groupsResult.length;
+
+      // Count unique students in groups
+      const studentsInGroupsResult = await db
+        .select({
+          formResponseId: groupMembers.formResponseId,
+        })
+        .from(groupMembers)
+        .innerJoin(groupDivisions, eq(groupMembers.divisionId, groupDivisions.id))
+        .where(inArray(groupDivisions.classId, classIds))
+        .groupBy(groupMembers.formResponseId);
+
+      const studentsInGroups = studentsInGroupsResult.length;
+
+      // Count total responses (all students who answered forms)
+      const totalResponsesResult = await db
+        .select({
+          count: sql<number>`COUNT(*)`,
+        })
+        .from(formResponses)
+        .where(inArray(formResponses.classId, classIds));
+
+      const totalResponses = Number(totalResponsesResult[0]?.count || 0);
+      const studentsWithoutGroup = totalResponses - studentsInGroups;
+
+      console.log('📊 Group stats:', {
+        totalGroups,
+        studentsInGroups,
+        totalResponses,
+        studentsWithoutGroup,
+      });
+
+      return {
+        totalGroupsCreated: totalGroups,
+        studentsInGroups,
+        studentsWithoutGroup: Math.max(0, studentsWithoutGroup),
+      };
+    } catch (error) {
+      console.error('Error getting group stats:', error);
+      return {
+        totalGroupsCreated: 0,
+        studentsInGroups: 0,
+        studentsWithoutGroup: 0,
+      };
     }
   }
 }

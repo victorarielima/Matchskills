@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
-import Nav from "@/components/ui/nav";
+import SidebarDashboard from "@/components/ui/sidebar-dashboard";
 import { ArrowLeft, Users, Shuffle, BarChart3, FileText, UserPlus, AlertTriangle, Brain } from "lucide-react";
 import type { FormResponse, Class, GroupDivision, GroupMember } from "@shared/schema";
 
@@ -391,7 +391,7 @@ export default function GroupDivision() {
       }
 
       console.log("📋 Perguntas do formulário:", currentFormQuestions);
-      console.log("👥 Respostas dos alunos:", responses);
+      console.log("👥 Respostas dos participantes:", responses);
       
       // Função para mapear com as perguntas atuais
       const mapWithCurrentQuestions = (studentResponses: any) => {
@@ -1036,18 +1036,21 @@ export default function GroupDivision() {
   const actualResponses = responses?.length || 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <Nav />
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+      {/* Sidebar */}
+      <SidebarDashboard />
       
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => setLocation(`/class/${classId}/responses`)}
-            className="mb-4 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto transition-all duration-300" style={{ marginLeft: 'var(--sidebar-width, 16rem)' }}>
+        <div className="p-8">
+          {/* Header */}
+          <div className="mb-8">
+            <Button
+              variant="ghost"
+              onClick={() => setLocation(`/class/${classId}/responses`)}
+              className="mb-4 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar para Respostas
           </Button>
           
@@ -1056,7 +1059,7 @@ export default function GroupDivision() {
               Divisão de Grupos - {classData?.name}
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Configure e divida os alunos em grupos automaticamente
+              Configure e divida os participantes em grupos automaticamente
             </p>
           </div>
         </div>
@@ -1087,7 +1090,7 @@ export default function GroupDivision() {
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-slate-600">
                   <span className="text-sm text-gray-600 dark:text-gray-400">Taxa de resposta:</span>
-                  <span className="font-semibold text-purple-600 dark:text-purple-400">
+                  <span className="font-semibold dark:text-purple-600 text-blue-600 dark:text-purple-400">
                     {expectedResponses > 0 ? `${Math.round((actualResponses / expectedResponses) * 100)}%` : '0%'}
                   </span>
                 </div>
@@ -1160,7 +1163,7 @@ export default function GroupDivision() {
 
                   <Button
                     onClick={() => divideGroupsWithAI(false)}
-                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                    className="w-full bg-gradient-to-r dark:from-purple-600 dark:to-pink-600 dark:hover:from-purple-700 dark:hover:to-pink-700 from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white"
                     disabled={actualResponses === 0 || !prompt.trim()}
                   >
                     <Brain className="mr-2 h-4 w-4" />
@@ -1188,13 +1191,13 @@ export default function GroupDivision() {
               </CardContent>
             </Card>
 
-            {/* Alunos Não Alocados */}
+            {/* Participantes Não Alocados */}
             {unallocatedMembers.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center text-gray-900 dark:text-gray-100">
                     <UserPlus className="mr-2 h-5 w-5" />
-                    Alunos Não Alocados ({unallocatedMembers.length})
+                    Participantes Não Alocados ({unallocatedMembers.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -1305,15 +1308,15 @@ export default function GroupDivision() {
             <AlertDialogDescription>
               {alertState.data?.isReorganizing ? (
                 <>
-                  Você já possui grupos organizados. Deseja reorganizar todos os alunos em novos grupos?
+                  Você já possui grupos organizados. Deseja reorganizar todos os participantes em novos grupos?
                   <br /><br />
-                  Com {alertState.data?.totalMembers} alunos e grupos de {alertState.data?.membersPerGroup} pessoas, 
+                  Com {alertState.data?.totalMembers} participantes e grupos de {alertState.data?.membersPerGroup} pessoas, 
                   serão criados {alertState.data?.completeGroups} grupos completos{alertState.data?.remainingMembers > 0 && 
                   ` e 1 grupo com apenas ${alertState.data?.remainingMembers} ${alertState.data?.remainingMembers === 1 ? 'pessoa' : 'pessoas'}`}.
                 </>
               ) : (
                 <>
-                  Com {alertState.data?.totalMembers} alunos e grupos de {alertState.data?.membersPerGroup} pessoas, 
+                  Com {alertState.data?.totalMembers} participantes e grupos de {alertState.data?.membersPerGroup} pessoas, 
                   serão criados {alertState.data?.completeGroups} grupos completos e 1 grupo com apenas {alertState.data?.remainingMembers} {alertState.data?.remainingMembers === 1 ? 'pessoa' : 'pessoas'}.
                   <br /><br />
                   Você gostaria de aguardar mais respostas ou prosseguir com grupos desiguais?
@@ -1363,6 +1366,7 @@ export default function GroupDivision() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 }

@@ -14,7 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Nav from "@/components/ui/nav";
+import SidebarDashboard from "@/components/ui/sidebar-dashboard";
 import FormBuilder from "@/components/forms/form-builder";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { X, Plus, FileText, Layers, ChevronDown } from "lucide-react";
@@ -67,9 +67,7 @@ export default function CreateClass() {
   useEffect(() => {
     const checkDarkMode = () => {
       const html = document.documentElement;
-      const isDark = html.classList.contains('dark') || 
-                     window.getComputedStyle(html).colorScheme === 'dark' ||
-                     window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDark = html.classList.contains('dark');
       setIsDarkMode(isDark);
     };
 
@@ -78,15 +76,11 @@ export default function CreateClass() {
     const observer = new MutationObserver(checkDarkMode);
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['class', 'data-theme'],
+      attributeFilter: ['class'],
     });
-
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    mediaQuery.addEventListener('change', checkDarkMode);
 
     return () => {
       observer.disconnect();
-      mediaQuery.removeEventListener('change', checkDarkMode);
     };
   }, []);
 
@@ -102,7 +96,14 @@ export default function CreateClass() {
 
   // Button glow style function
   const getButtonStyle = () => {
-    if (!isDarkMode) return {};
+    if (!isDarkMode) {
+      return {
+        backgroundColor: '#2563eb', // blue-600
+        borderColor: '#2563eb',
+        color: 'white',
+        transition: 'all 0.3s ease-in-out',
+      };
+    }
     
     return {
       backgroundColor: '#9741E7',
@@ -164,7 +165,7 @@ export default function CreateClass() {
     onSuccess: () => {
       toast({
         title: "Sucesso!",
-        description: isEditMode ? "Turma atualizada com sucesso!" : "Turma criada com sucesso!",
+        description: isEditMode ? "Grupo atualizado com sucesso!" : "Grupo criado com sucesso!",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/classes"] });
       setLocation("/");
@@ -183,7 +184,7 @@ export default function CreateClass() {
       }
       toast({
         title: "Erro",
-        description: `Falha ao ${isEditMode ? 'atualizar' : 'criar'} turma. Tente novamente.`,
+        description: `Falha ao ${isEditMode ? 'atualizar' : 'criar'} grupo. Tente novamente.`,
         variant: "destructive",
       });
     },
@@ -219,21 +220,25 @@ export default function CreateClass() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <Nav />
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+      {/* Sidebar */}
+      <SidebarDashboard />
+      
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto transition-all duration-300" style={{ marginLeft: 'var(--sidebar-width, 16rem)' }}>
+        <div className="p-8">
+          <div className="max-w-4xl mx-auto">
           <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 transition-colors duration-200">
             <CardContent className="p-8">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white" style={getGlowStyle('#3b82f6')}>
-                    {isEditMode ? 'Editar Turma' : 'Criar Nova Turma'}
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white" style={isDarkMode ? getGlowStyle('#3b82f6') : {}}>
+                    {isEditMode ? 'Editar Formulário' : 'Criar Novo Formulário'}
                   </h1>
                   <p className="text-gray-600 dark:text-gray-300 mt-2" style={isDarkMode ? getGlowStyle('#64748b') : {}}>
                     {isEditMode 
-                      ? 'Atualize as informações da sua turma e formulário de avaliação'
-                      : 'Configure sua turma e crie um formulário de avaliação personalizado'
+                      ? 'Atualize as informações do seu grupo e formulário de avaliação'
+                      : 'Configure seu grupo e crie um formulário de avaliação personalizado'
                     }
                   </p>
                 </div>
@@ -250,11 +255,11 @@ export default function CreateClass() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                 {/* Basic Class Information */}
                 <div className="space-y-6">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white" style={getGlowStyle('#10b981')}>Informações da Turma</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white" style={getGlowStyle('#10b981')}>Informações do Grupo</h2>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="name">Nome da Turma</Label>
+                      <Label htmlFor="name">Nome do Grupo</Label>
                       <Input
                         id="name"
                         placeholder="Ex: Avaliação de Competências - Marketing"
@@ -297,7 +302,7 @@ export default function CreateClass() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="isActive">Status da Turma</Label>
+                      <Label htmlFor="isActive">Status do Grupo</Label>
                       <div className="flex items-center space-x-2">
                         <input
                           id="isActive"
@@ -306,7 +311,7 @@ export default function CreateClass() {
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
                         <Label htmlFor="isActive" className="text-sm text-gray-600 dark:text-gray-300" style={isDarkMode ? getGlowStyle('#f59e0b') : {}}>
-                          Turma ativa (permite receber respostas)
+                          Grupo ativo (permite receber respostas)
                         </Label>
                       </div>
                     </div>
@@ -404,13 +409,14 @@ export default function CreateClass() {
                   >
                     {createClassMutation.isPending 
                       ? (isEditMode ? "Atualizando..." : "Criando...")
-                      : (isEditMode ? "Atualizar Turma" : "Criar Turma")
+                      : (isEditMode ? "Atualizar Formulário" : "Criar Formulário")
                     }
                   </Button>
                 </div>
               </form>
             </CardContent>
           </Card>
+          </div>
         </div>
       </div>
     </div>

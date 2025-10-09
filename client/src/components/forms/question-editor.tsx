@@ -23,9 +23,7 @@ export default function QuestionEditor({ question, index, onChange, onRemove }: 
   useEffect(() => {
     const checkDarkMode = () => {
       const html = document.documentElement;
-      const isDark = html.classList.contains('dark') || 
-                     window.getComputedStyle(html).colorScheme === 'dark' ||
-                     window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDark = html.classList.contains('dark');
       setIsDarkMode(isDark);
     };
 
@@ -34,15 +32,11 @@ export default function QuestionEditor({ question, index, onChange, onRemove }: 
     const observer = new MutationObserver(checkDarkMode);
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['class', 'data-theme'],
+      attributeFilter: ['class'],
     });
-
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    mediaQuery.addEventListener('change', checkDarkMode);
 
     return () => {
       observer.disconnect();
-      mediaQuery.removeEventListener('change', checkDarkMode);
     };
   }, []);
 
@@ -58,7 +52,14 @@ export default function QuestionEditor({ question, index, onChange, onRemove }: 
 
   // Button glow style function
   const getButtonStyle = () => {
-    if (!isDarkMode) return {};
+    if (!isDarkMode) {
+      return {
+        backgroundColor: '#2563eb', // blue-600
+        borderColor: '#2563eb',
+        color: 'white',
+        transition: 'all 0.3s ease-in-out',
+      };
+    }
     
     return {
       backgroundColor: '#9741E7',
