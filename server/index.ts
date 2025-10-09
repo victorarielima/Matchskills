@@ -2,10 +2,14 @@ import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { setupSwagger } from "./swagger";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Servir arquivos estáticos para favicon e assets da documentação
+app.use('/static', express.static('server/public'));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -39,6 +43,9 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = registerRoutes(app);
+  
+  // Setup API Documentation
+  setupSwagger(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -60,6 +67,13 @@ app.use((req, res, next) => {
   // Azure Linux espera que o servidor escute em process.env.PORT ou 8080
   const port = parseInt(process.env.PORT || '8080', 10);
   server.listen(port, () => {
-    log(`serving on port ${port}`);
+    log(`http://localhost:${port}`);
+    
+    // Mostrar links da documentação em modo desenvolvimento
+    if (app.get("env") === "development") {
+      console.log('\n Documentação da API MatchSkills:');
+      console.log(`  Scalar Docs: http://localhost:${port}/docs`);
+      console.log('');
+    }
   });
 })();

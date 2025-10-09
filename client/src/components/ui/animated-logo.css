@@ -23,6 +23,12 @@
     animation: brainPulse 2.5s infinite ease-in-out;
 }
 
+/* Modo Escuro - Círculo roxo */
+.dark .brain-core {
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
+}
+
 .brain-core::after {
     content: '';
     position: absolute;
@@ -157,6 +163,14 @@
     white-space: nowrap;
 }
 
+/* Modo Escuro - Texto com gradiente roxo */
+.dark .brand-name {
+    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #c084fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
 .subtitle {
     font-size: 10px;
     color: rgba(107, 114, 128, 0.8);
@@ -175,6 +189,22 @@
     50% {
         transform: translate(-50%, -50%) scale(1.1);
         box-shadow: 0 0 30px rgba(0, 245, 255, 0.9);
+    }
+}
+
+/* Modo Escuro - Animação com brilho roxo */
+.dark .brain-core {
+    animation: brainPulsePurple 2.5s infinite ease-in-out;
+}
+
+@keyframes brainPulsePurple {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        box-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.1);
+        box-shadow: 0 0 30px rgba(168, 85, 247, 0.9);
     }
 }
 

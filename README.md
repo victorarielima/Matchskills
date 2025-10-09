@@ -1,51 +1,30 @@
-# ClassConnect
+# MatchSkills
+
+
 
 Sistema de gestão de turmas e formulários de avaliação desenvolvido com React, TypeScript e Node.js.
 
 ## 📋 Funcionalidades
 
-- ✅ **Gestão de Turmas**: Criação, edição e gerenciamento de turmas
+# MatchSkills
+
+Sistema de gestão de grupos e formulários de avaliação desenvolvido com React, TypeScript e Node.js.
+
+## 📋 Funcionalidades
+
+- ✅ **Gestão de Grupos**: Criação, edição e gerenciamento de grupos
 - ✅ **Formulários Dinâmicos**: Criação de formulários de avaliação personalizados
 - ✅ **Dashboard Interativo**: Visualização de dados e métricas em tempo real
-- ✅ **Divisão de Grupos**: Sistema automático de divisão de alunos em grupos
+- ✅ **Divisão de Equipes**: Sistema automático de divisão de participantes em equipes
 - ✅ **Integração N8N**: Webhook para envio automático de dados de divisão
 - ✅ **Autenticação**: Sistema de login seguro
 - ✅ **Dark Mode**: Interface adaptável com modo escuro/claro
 - ✅ **Responsive Design**: Interface otimizada para desktop e mobile
 - ✅ **Banco de Dados**: Persistência de dados com PostgreSQL
 
-## 🛠️ Tecnologias
+## � Integração com N8N
 
-### Frontend
-- **React 18** com TypeScript
-- **Vite** para build e desenvolvimento
-- **Tailwind CSS** para estilização
-- **React Query** para gerenciamento de estado
-- **React Hook Form** para formulários
-- **Wouter** para roteamento
-
-### Backend
-- **Node.js** com TypeScript
-- **Express** para API REST
-- **Drizzle ORM** para banco de dados
-- **PostgreSQL** como banco de dados
-- **Supabase** para infraestrutura
-
-### Ferramentas
-- **ESLint** e **Prettier** para qualidade de código
-- **Playwright** para testes end-to-end
-
-## 🚀 Deploy na Azure
-
-Este projeto está otimizado para deploy na Azure com as seguintes configurações:
-
-### Pré-requisitos
-- Node.js 18+ 
-- PostgreSQL ou Supabase
-- Variáveis de ambiente configuradas
-
-### Estrutura do Build
-```bash
+O MatchSkills possui integração nativa com N8N para automação de processos. Quando os grupos são divididos, os dados podem ser enviados automaticamente para um webhook configurado.
 npm run build
 ```
 
@@ -56,7 +35,7 @@ O build gera:
 ## 📦 Estrutura do Projeto
 
 ```
-ClassConnect/
+MatchSkills/
 ├── client/                 # Frontend React
 │   ├── src/
 │   │   ├── components/     # Componentes reutilizáveis
@@ -76,8 +55,8 @@ ClassConnect/
 
 ### 1. Clone o repositório
 ```bash
-git clone https://github.com/victorarielima/ClassConnect.git
-cd ClassConnect
+git clone https://github.com/victorarielima/MatchSkills.git
+cd MatchSkills
 ```
 
 ### 2. Instale as dependências
@@ -101,14 +80,14 @@ npm run dev
 ## 📱 Funcionalidades Principais
 
 ### Dashboard
-- Visualização de turmas ativas
+- Visualização de grupos ativos
 - Métricas de participação
 - Contador de respostas em tempo real
 - Interface adaptativa (dark/light mode)
 
-### Gestão de Turmas
-- Criação de turmas com limites personalizáveis
-- Configuração de grupos
+### Gestão de Grupos
+- Criação de grupos com limites personalizáveis
+- Configuração de equipes
 - Status de ativação/desativação
 
 ### Formulários Dinâmicos
@@ -163,7 +142,7 @@ Para contribuir com o projeto:
 
 ## � Integração com N8N
 
-O ClassConnect possui integração nativa com N8N para automação de processos. Quando os grupos são divididos, os dados podem ser enviados automaticamente para um webhook configurado.
+O MatchSkills possui integração nativa com N8N para automação de processos. Quando os grupos são divididos, os dados podem ser enviados automaticamente para um webhook configurado.
 
 ### Configuração
 
@@ -172,9 +151,9 @@ O ClassConnect possui integração nativa com N8N para automação de processos.
 
 ### Dados Enviados
 
-- Nome dos alunos e suas respostas
+- Nome dos participantes e suas respostas
 - Configurações da divisão (prompt, quantidade por grupo)
-- Nome da divisão e dados da turma
+- Nome da divisão e dados do grupo
 - Estrutura completa dos grupos formados
 
 Para mais detalhes, consulte: [WEBHOOK_N8N_GUIDE.md](./WEBHOOK_N8N_GUIDE.md)

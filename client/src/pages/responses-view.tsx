@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import Nav from "@/components/ui/nav";
+import SidebarDashboard from "@/components/ui/sidebar-dashboard";
 import { ArrowLeft, Download, Filter, SortAsc, BarChart3, Users, FileText, Clock, Eye, Shuffle } from "lucide-react";
 import type { FormResponse, FormQuestion } from "@shared/schema";
 
@@ -204,12 +204,14 @@ export default function ResponsesView() {
   }
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-      <Nav />
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+      {/* Sidebar */}
+      <SidebarDashboard />
       
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
+      <div className="flex-1 overflow-auto transition-all duration-300" style={{ marginLeft: 'var(--sidebar-width, 16rem)' }}>
+        <div className="p-8">
+          <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 
@@ -357,12 +359,12 @@ export default function ResponsesView() {
                 <div className={`p-3 rounded-lg ${
                   isDarkMode 
                     ? 'bg-purple-500 bg-opacity-20' 
-                    : 'bg-purple-100'
+                    : 'bg-blue-100'
                 }`}>
                   <BarChart3 className={`text-xl ${
                     isDarkMode 
                       ? 'text-purple-400' 
-                      : 'text-purple-600'
+                      : 'text-blue-600'
                   }`} />
                 </div>
                 <div className="ml-4">
@@ -488,7 +490,7 @@ export default function ResponsesView() {
                 <p className={`${
                   isDarkMode ? 'text-gray-400' : 'text-gray-600'
                 }`}>
-                  As respostas dos alunos aparecerão aqui
+                  As respostas dos participantes aparecerão aqui
                 </p>
               </div>
             ) : (
@@ -501,7 +503,7 @@ export default function ResponsesView() {
                       <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider w-2/5 ${
                         isDarkMode ? 'text-gray-300' : 'text-gray-500'
                       }`}>
-                        Aluno
+                        Participante
                       </th>
                       <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider w-1/6 ${
                         isDarkMode ? 'text-gray-300' : 'text-gray-500'
@@ -737,6 +739,7 @@ export default function ResponsesView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

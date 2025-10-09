@@ -44,29 +44,52 @@ export default {
         border: "var(--border)",
         input: "var(--input)",
         ring: "var(--ring)",
-        // MatchSkills Brand Colors
+        // MatchSkills Brand Colors - Shoplay Inspired
         matchskills: {
           blue: {
             50: '#eff6ff',
             100: '#dbeafe',
-            500: '#3b82f6',
-            600: '#2563eb',
-            700: '#1d4ed8',
-            800: '#1e3a8a',
-            900: '#1e40af',
+            500: '#7D53F3',
+            600: '#6B46E3',
+            700: '#5A3BD1',
+            800: '#4A2FB8',
+            900: '#071724',
           },
           green: {
             50: '#f0fdf4',
             100: '#dcfce7',
-            400: '#4ade80',
-            500: '#22c55e',
-            600: '#16a34a',
-            700: '#15803d',
+            400: '#70D095',
+            500: '#54BF7B',
+            600: '#3AAB63',
+            700: '#2E9551',
           },
           teal: {
-            400: '#2dd4bf',
-            500: '#14b8a6',
-            600: '#0d9488',
+            400: '#FF947D',
+            500: '#FF7956',
+            600: '#E85A39',
+          }
+        },
+        // Shoplay Color Palette
+        shoplay: {
+          purple: {
+            DEFAULT: '#7D53F3',
+            light: '#9B7EF4',
+            dark: '#6B46E3',
+          },
+          green: {
+            DEFAULT: '#54BF7B',
+            light: '#70D095',
+            dark: '#3AAB63',
+          },
+          coral: {
+            DEFAULT: '#FF7956',
+            light: '#FF947D',
+            dark: '#E85A39',
+          },
+          neutral: {
+            dark: '#071724',
+            gray: '#F5F6FA',
+            light: '#FFFFFF',
           }
         },
         chart: {
