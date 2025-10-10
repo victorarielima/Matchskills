@@ -43,19 +43,6 @@ O **MatchSkills** é uma solução completa para gestão de grupos e formulário
 - 📱 **100% Responsivo**: Funciona perfeitamente em qualquer dispositivo
 - 🌙 **Dark Mode Inteligente**: Detecção automática de preferência do sistema
 
----
-
-## 📸 Demonstração
-
-### Dashboard - Modo Escuro
-![Dashboard Dark Mode](docs\images\modo-escuro.png)
-*Interface elegante com animação de céu noturno e métricas em tempo real*
-
-### Dashboard - Modo Claro  
-![Dashboard Light Mode](docs\images\modo-claro.jpg)
-*Design clean com animação de céu diurno e visualização clara dos dados*
-
----
 
 ## � Funcionalidades Principais
 
