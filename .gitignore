@@ -16,6 +16,19 @@ out/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*.local
+*.env
+!.env.example
+
+# Sensitive files that might contain credentials
+config.local.js
+config.local.ts
+secrets.json
+credentials.json
+*-credentials.json
+*.pem
+*.key
+*.cert
 
 # Azure specific files
 .azure/

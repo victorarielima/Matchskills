@@ -28,8 +28,13 @@ export function setupAuth(app: Express) {
     checkPeriod: 86400000, // prune expired entries every 24h
   });
 
+  // Garante que SESSION_SECRET está configurado
+  if (!process.env.SESSION_SECRET) {
+    throw new Error("A variável de ambiente SESSION_SECRET é obrigatória");
+  }
+
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || "your-secret-key",
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     store: sessionStore,

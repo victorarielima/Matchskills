@@ -3,6 +3,10 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupSwagger } from "./swagger";
+import { validateOrThrow } from "./env-validator";
+
+// Valida variáveis de ambiente antes de iniciar o servidor
+validateOrThrow();
 
 const app = express();
 app.use(express.json());

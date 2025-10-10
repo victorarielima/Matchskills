@@ -173,13 +173,13 @@ npm install
 
 ### 3️⃣ Configure as variáveis de ambiente
 
-Crie um arquivo `.env` na raiz do projeto:
+Copie o arquivo de exemplo e configure com suas credenciais:
 
-```env
-DATABASE_URL=sua-url-do-banco
-SUPABASE_URL=sua-url-do-supabase
-SUPABASE_ANON_KEY=sua-chave-anonima
+```bash
+cp .env.example .env
 ```
+
+Edite o arquivo `.env` e preencha com suas credenciais reais do Supabase e outras configurações necessárias. Veja o arquivo `.env.example` para referência de todas as variáveis necessárias.
 
 ### 4️⃣ Execute as migrações do banco
 ```bash
