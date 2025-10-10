@@ -277,8 +277,18 @@ export default function GroupDivision() {
   // Função para enviar dados para webhook do n8n
   const sendToWebhook = async (webhookData: any) => {
     try {
-      // URL fixa do webhook N8N
-      const webhookUrl = "https://ai.brasengconsultoria.com.br/webhook-test/e11b0a60-fff7-4386-8906-ff94bb0a6b7e";
+      // URL do webhook N8N configurada via variável de ambiente
+      const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
+      
+      if (!webhookUrl) {
+        console.error("❌ WEBHOOK - URL não configurada. Configure VITE_N8N_WEBHOOK_URL no arquivo .env");
+        toast({
+          title: "Erro de Configuração",
+          description: "URL do webhook não está configurada. Verifique as variáveis de ambiente.",
+          variant: "destructive",
+        });
+        return;
+      }
       
       // Log detalhado dos dados que estão sendo enviados
       console.log("🚀 WEBHOOK - Dados completos sendo enviados:", JSON.stringify(webhookData, null, 2));
@@ -803,8 +813,18 @@ export default function GroupDivision() {
 
       console.log("🤖 IA - Dados preparados:", JSON.stringify(aiRequestData, null, 2));
 
-      // Configurar URL do webhook para IA (URL fixa)
-      const webhookUrl = "https://ai.brasengconsultoria.com.br/webhook-test/e11b0a60-fff7-4386-8906-ff94bb0a6b7e";
+      // Configurar URL do webhook para IA (via variável de ambiente)
+      const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
+      
+      if (!webhookUrl) {
+        console.error("❌ IA - URL do webhook não configurada. Configure VITE_N8N_WEBHOOK_URL no arquivo .env");
+        toast({
+          title: "Erro de Configuração",
+          description: "URL do webhook N8N não está configurada.",
+          variant: "destructive",
+        });
+        return;
+      }
       
       // Enviar dados para IA via webhook
       const response = await fetch(webhookUrl, {
