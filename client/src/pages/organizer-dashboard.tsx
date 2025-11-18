@@ -422,7 +422,7 @@ export default function OrganizerDashboard() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="border-0 shadow-sm">
+            <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -445,7 +445,7 @@ export default function OrganizerDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-sm">
+            <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -468,7 +468,7 @@ export default function OrganizerDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-sm">
+            <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -491,7 +491,7 @@ export default function OrganizerDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-sm">
+            <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -519,7 +519,7 @@ export default function OrganizerDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Classes Section */}
             <div className="lg:col-span-2">
-              <Card className="border-0 shadow-sm">
+              <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
                 <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                     Seus Formulários
@@ -679,7 +679,7 @@ export default function OrganizerDashboard() {
 
             {/* Activity History Sidebar */}
             <div className="lg:col-span-1">
-              <Card className="border-0 shadow-sm">
+              <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
                 <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">

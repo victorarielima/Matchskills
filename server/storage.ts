@@ -395,6 +395,8 @@ export class DatabaseStorage implements IStorage {
     groups: any[] 
   }): Promise<GroupDivision> {
     try {
+      console.log('📊 Criando divisão com dados:', JSON.stringify(data.groups[0], null, 2));
+      
       // Create the division
       const divisionData: InsertGroupDivision = {
         classId: data.classId,
@@ -408,11 +410,15 @@ export class DatabaseStorage implements IStorage {
       // Create group members
       const memberData: InsertGroupMember[] = [];
       for (const group of data.groups) {
+        console.log(`👥 Processando grupo ${group.groupNumber}, leaderId: ${group.leaderId}`);
         for (const member of group.members) {
+          const isLeader = member.id === group.leaderId;
+          console.log(`  └─ Membro ${member.studentName} (${member.id}): isLeader=${isLeader}`);
           memberData.push({
             divisionId: division.id,
             groupNumber: group.groupNumber,
             formResponseId: member.id,
+            isLeader, // Marcar como líder se for o leaderId do grupo
           });
         }
       }
@@ -434,6 +440,7 @@ export class DatabaseStorage implements IStorage {
         .select({
           groupNumber: groupMembers.groupNumber,
           formResponseId: groupMembers.formResponseId,
+          isLeader: groupMembers.isLeader,
           studentName: formResponses.studentName,
           studentEmail: formResponses.studentEmail,
           responses: formResponses.responses,
@@ -450,7 +457,8 @@ export class DatabaseStorage implements IStorage {
         if (!groups[row.groupNumber]) {
           groups[row.groupNumber] = {
             groupNumber: row.groupNumber,
-            members: []
+            members: [],
+            leaderId: undefined
           };
         }
         
@@ -460,8 +468,14 @@ export class DatabaseStorage implements IStorage {
           studentName: row.studentName,
           studentEmail: row.studentEmail,
           responses: row.responses,
-          submittedAt: row.submittedAt
+          submittedAt: row.submittedAt,
+          isLeader: row.isLeader
         };
+        
+        // Se este membro é líder, armazenar seu ID no grupo
+        if (row.isLeader) {
+          groups[row.groupNumber].leaderId = row.formResponseId;
+        }
         
         groups[row.groupNumber].members.push(member);
       }
@@ -501,6 +515,7 @@ export class DatabaseStorage implements IStorage {
               divisionId: divisionId,
               formResponseId: member.id,
               groupNumber: group.groupNumber,
+              isLeader: member.id === group.leaderId, // Marcar como líder se for o leaderId do grupo
               createdAt: new Date()
             });
           }

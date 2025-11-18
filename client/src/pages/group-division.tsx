@@ -17,6 +17,7 @@ import type { FormResponse, Class, GroupDivision, GroupMember } from "@shared/sc
 interface GroupWithMembers {
   groupNumber: number;
   members: FormResponse[];
+  leaderId?: string; // ID do líder do grupo
 }
 
 interface AlertState {
@@ -36,10 +37,11 @@ export default function GroupDivision() {
   // Estados principais
   const [divisionName, setDivisionName] = useState<string>("Divisão Principal");
   const [membersPerGroup, setMembersPerGroup] = useState<number>(4);
-  const [prompt, setPrompt] = useState<string>("");
+  const [projectDescription, setProjectDescription] = useState<string>("");
   const [groups, setGroups] = useState<GroupWithMembers[]>([]);
   const [currentDivisionId, setCurrentDivisionId] = useState<string | null>(null);
   const [alertState, setAlertState] = useState<AlertState>({ type: null, isOpen: false });
+  const [leaders, setLeaders] = useState<Set<string>>(new Set()); // IDs dos líderes selecionados
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return document.documentElement.classList.contains('dark');
   });
@@ -86,8 +88,44 @@ export default function GroupDivision() {
     setCurrentDivisionId(null);
     setDivisionName("Divisão Principal");
     setMembersPerGroup(4);
-    setPrompt("");
+    setProjectDescription("");
+    setLeaders(new Set());
   }, [classId]);
+
+  // Função para alternar líder
+  const toggleLeader = (memberId: string) => {
+    setLeaders(prev => {
+      const newLeaders = new Set(prev);
+      if (newLeaders.has(memberId)) {
+        newLeaders.delete(memberId);
+      } else {
+        newLeaders.add(memberId);
+      }
+      return newLeaders;
+    });
+  };
+
+  // Função para assignar líderes aos grupos
+  const assignLeadersToGroups = (groupsToProcess: GroupWithMembers[]): GroupWithMembers[] => {
+    // Verificar se cada grupo tem pelo menos um líder
+    return groupsToProcess.map(group => {
+      // Procurar se algum membro do grupo é um líder
+      const groupLeader = group.members.find(member => leaders.has(member.id));
+      
+      if (groupLeader) {
+        return {
+          ...group,
+          leaderId: groupLeader.id
+        };
+      }
+      
+      // Se nenhum líder foi designado, usar o primeiro membro como líder
+      return {
+        ...group,
+        leaderId: group.members[0]?.id
+      };
+    });
+  };
 
   // Buscar dados da classe
   const { data: classData, isLoading: isClassLoading } = useQuery({
@@ -186,7 +224,7 @@ export default function GroupDivision() {
           setCurrentDivisionId(division.id);
           setDivisionName(division.name);
           setMembersPerGroup(division.membersPerGroup);
-          setPrompt(division.prompt || "");
+          setProjectDescription(division.prompt || "");
           
           // Carregar os grupos da divisão
           console.log("📥 Carregando grupos da divisão ID:", division.id);
@@ -264,6 +302,16 @@ export default function GroupDivision() {
         const groupsData = await response.json();
         console.log("✅ Grupos carregados:", groupsData);
         setGroups(groupsData);
+        
+        // Carregar os líderes do servidor
+        const loadedLeaders = new Set<string>();
+        for (const group of groupsData) {
+          if (group.leaderId) {
+            loadedLeaders.add(group.leaderId);
+          }
+        }
+        console.log("👑 Líderes carregados:", Array.from(loadedLeaders));
+        setLeaders(loadedLeaders);
       } else {
         console.error("❌ Erro ao carregar grupos:", response.status, response.statusText);
         setGroups([]); // Limpar grupos em caso de erro
@@ -291,9 +339,11 @@ export default function GroupDivision() {
       }
       
       // Log detalhado dos dados que estão sendo enviados
-      console.log("🚀 WEBHOOK - Dados completos sendo enviados:", JSON.stringify(webhookData, null, 2));
-      console.log("🔍 WEBHOOK - Primeiro estudante:", webhookData.groups?.[0]?.students?.[0]);
-      console.log("📋 WEBHOOK - FormQuestions:", webhookData.formQuestions);
+      console.log("🚀 WEBHOOK - Iniciando envio de dados...");
+      console.log(`👥 Total de estudantes: ${webhookData.students.length}`);
+      console.log(`📋 Pessoas por grupo: ${webhookData.membersPerGroup}`);
+      console.log(`📝 Descrição do projeto: ${webhookData.projectDescription}`);
+      console.log("📄 Dados que serão enviados:", JSON.stringify(webhookData, null, 2));
       
       const response = await fetch(webhookUrl, {
         method: "POST",
@@ -450,40 +500,18 @@ export default function GroupDivision() {
         return mappedResponses;
       };
       
+      // Construir dados no formato simplificado solicitado
       const webhookData = {
-        classId: classId,
-        className: classData?.name || "Classe sem nome",
-        divisionName: variables.name,
-        prompt: variables.prompt,
         membersPerGroup: variables.membersPerGroup,
-        totalGroups: variables.groups.length,
-        totalStudents: variables.groups.reduce((total, group) => total + group.members.length, 0),
-        createdAt: new Date().toISOString(),
-        formQuestions: currentFormQuestions.map((question: any) => ({
-          id: question.id,
-          question: question.question,
-          type: question.type,
-          options: question.options || [],
-          isRequired: question.isRequired,
-          order: question.order
-        })),
-        groups: variables.groups.map((group, index) => ({
-          groupNumber: group.groupNumber,
-          groupName: `Grupo ${group.groupNumber}`,
-          memberCount: group.members.length,
-          students: group.members.map(member => ({
-            id: member.id,
-            name: member.studentName,
-            responses: mapWithCurrentQuestions(member.responses || {}),
-            rawResponses: member.responses || {} // Manter formato original também
+        projectDescription: variables.prompt,
+        students: allStudentResponses.map(student => ({
+          name: student.studentName,
+          id: student.id,
+          responses: Object.entries(student.responses).map(([questionId, data]: [string, any]) => ({
+            pergunta: data.question || `Pergunta ${questionId}`,
+            resposta: data.answer
           }))
-        })),
-        allStudentResponses: responses?.map((response: FormResponse) => ({
-          id: response.id,
-          studentName: response.studentName,
-          responses: mapWithCurrentQuestions(response.responses || {}),
-          rawResponses: response.responses || {} // Manter formato original também
-        })) || []
+        }))
       };
 
       // Enviar para o webhook
@@ -648,7 +676,7 @@ export default function GroupDivision() {
     const shuffledResponses = [...membersToAllocate].sort(() => Math.random() - 0.5);
     
     // Dividir em grupos
-    const newGroups: GroupWithMembers[] = [];
+    let newGroups: GroupWithMembers[] = [];
     
     for (let i = 0; i < shuffledResponses.length; i += membersPerGroup) {
       const members = shuffledResponses.slice(i, i + membersPerGroup);
@@ -660,15 +688,25 @@ export default function GroupDivision() {
       });
     }
 
+    // Assignar líderes aos grupos
+    newGroups = assignLeadersToGroups(newGroups);
+
     setGroups(newGroups);
     setAlertState({ type: null, isOpen: false });
     
-    // Salvar/atualizar no banco de dados
+    console.log('📤 Enviando grupos:', JSON.stringify(newGroups.slice(0, 1), null, 2));
+    
+    // Salvar no banco de dados
     saveGroupsMutation.mutate({
       name: divisionName,
       membersPerGroup,
-      prompt,
+      prompt: "",
       groups: newGroups
+    });
+
+    toast({
+      title: "Grupos divididos!",
+      description: `${newGroups.length} grupos foram criados aleatoriamente. Use "Dividir com IA" para otimizar.`,
     });
   };
 
@@ -692,10 +730,10 @@ export default function GroupDivision() {
       return;
     }
 
-    if (!prompt.trim()) {
+    if (!projectDescription.trim()) {
       toast({
-        title: "Prompt necessário",
-        description: "Por favor, forneça instruções no campo 'Prompt' para que a IA possa dividir os grupos de forma inteligente.",
+        title: "Descrição do projeto necessária",
+        description: "Por favor, forneça uma descrição do projeto para que a IA possa dividir os grupos de forma inteligente.",
         variant: "destructive",
       });
       return;
@@ -792,15 +830,15 @@ export default function GroupDivision() {
 
       // Preparar dados para a IA com mapeamento das perguntas
       const aiRequestData = {
-        students: responses.map((response: FormResponse) => ({
-          id: response.id,
-          name: response.studentName,
-          responses: mapAIResponsesWithQuestions(response.responses || {}),
-          rawResponses: response.responses || {} // Manter formato original também
-        })),
-        prompt: prompt,
-        membersPerGroup: membersPerGroup,
-        className: classData?.name || "Classe sem nome",
+        metadata: {
+          classId: classId,
+          className: classData?.name || "Classe sem nome",
+          divisionName: divisionName,
+          projectDescription: projectDescription,
+          membersPerGroup: membersPerGroup,
+          totalStudents: responses?.length || 0,
+          timestamp: new Date().toISOString()
+        },
         formQuestions: currentFormQuestions.map((question: any) => ({
           id: question.id,
           question: question.question,
@@ -808,10 +846,21 @@ export default function GroupDivision() {
           options: question.options || [],
           isRequired: question.isRequired,
           order: question.order
+        })),
+        students: responses.map((response: FormResponse) => ({
+          studentId: response.id,
+          studentName: response.studentName,
+          studentEmail: response.studentEmail || "sem-email",
+          submittedAt: response.submittedAt,
+          responses: mapAIResponsesWithQuestions(response.responses || {}),
+          rawResponses: response.responses || {}
         }))
       };
 
       console.log("🤖 IA - Dados preparados:", JSON.stringify(aiRequestData, null, 2));
+      console.log(`📊 Total de estudantes: ${aiRequestData.students.length}`);
+      console.log(`📋 Total de perguntas: ${aiRequestData.formQuestions.length}`);
+      console.log("✅ Enviando para webhook N8N...")
 
       // Configurar URL do webhook para IA (via variável de ambiente)
       const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
@@ -831,10 +880,12 @@ export default function GroupDivision() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-AI-Request": "true", // Header para identificar que é uma requisição de IA
+          "X-Request-Type": "ai_division",
         },
         body: JSON.stringify({
           type: "ai_division",
+          source: "group-division",
+          action: "divide_with_ai",
           data: aiRequestData
         }),
       });
@@ -847,7 +898,10 @@ export default function GroupDivision() {
       
       // Por enquanto, vamos usar uma divisão inteligente baseada nas respostas
       // Em uma implementação futura, isso virá da resposta da IA
-      const intelligentGroups = createIntelligentGroups(responses, membersPerGroup, prompt);
+      let intelligentGroups = createIntelligentGroups(responses, membersPerGroup, projectDescription);
+      
+      // Assignar líderes aos grupos criados pela IA
+      intelligentGroups = assignLeadersToGroups(intelligentGroups);
       
       setGroups(intelligentGroups);
       setAlertState({ type: null, isOpen: false });
@@ -1088,7 +1142,7 @@ export default function GroupDivision() {
           {/* Painel de Configuração */}
           <div className="lg:col-span-1 space-y-6">
             {/* Estatísticas */}
-            <Card>
+            <Card className="bg-white dark:bg-gray-800 dark:border-gray-700">
               <CardHeader>
                 <CardTitle className="flex items-center text-gray-900 dark:text-gray-100">
                   <BarChart3 className="mr-2 h-5 w-5" />
@@ -1118,7 +1172,7 @@ export default function GroupDivision() {
             </Card>
 
             {/* Configuração */}
-            <Card>
+            <Card className="bg-white dark:bg-gray-800 dark:border-gray-700">
               <CardHeader>
                 <CardTitle className="flex items-center text-gray-900 dark:text-gray-100">
                   <Users className="mr-2 h-5 w-5" />
@@ -1155,21 +1209,55 @@ export default function GroupDivision() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="prompt" className="text-gray-700 dark:text-gray-300">
-                    Prompt para IA (instruções especiais)
+                  <Label htmlFor="projectDescription" className="text-gray-700 dark:text-gray-300">
+                    Descrição do Projeto
                   </Label>
                   <Textarea
-                    id="prompt"
-                    placeholder="Ex: Divida considerando habilidades complementares, diversidade de experiência, horários compatíveis..."
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
+                    id="projectDescription"
+                    placeholder="Ex: Projeto de programação, Projeto de equipe tech, Projeto de marketing digital..."
+                    value={projectDescription}
+                    onChange={(e) => setProjectDescription(e.target.value)}
                     className="mt-1 resize-none"
                     rows={3}
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Descreva como você gostaria que os grupos fossem organizados. A IA usará essas instruções.
+                    Descreva qual a finalidade do grupo e do projeto.
                   </p>
                 </div>
+
+                {/* Seleção de Líderes */}
+                {responses && responses.length > 0 && (
+                  <div>
+                    <Label className="text-gray-700 dark:text-gray-300 mb-3 block">
+                      Designar Líderes (Opcional)
+                    </Label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                      Selecione os líderes dos grupos. Cada grupo terá ao menos um líder.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600">
+                      {responses.map((member: FormResponse) => (
+                        <div
+                          key={member.id}
+                          onClick={() => toggleLeader(member.id)}
+                          className={`p-2 rounded cursor-pointer transition ${
+                            leaders.has(member.id)
+                              ? 'bg-blue-200 dark:bg-purple-700 border-2 border-blue-500 dark:border-purple-500'
+                              : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-purple-400'
+                          }`}
+                        >
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {leaders.has(member.id) ? '👑 ' : ''}{member.studentName}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                    {leaders.size > 0 && (
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                        {leaders.size} líder(es) selecionado(s)
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <div className="space-y-3">
                   <Button
@@ -1184,15 +1272,15 @@ export default function GroupDivision() {
                   <Button
                     onClick={() => divideGroupsWithAI(false)}
                     className="w-full bg-gradient-to-r dark:from-purple-600 dark:to-pink-600 dark:hover:from-purple-700 dark:hover:to-pink-700 from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white"
-                    disabled={actualResponses === 0 || !prompt.trim()}
+                    disabled={actualResponses === 0 || !projectDescription.trim()}
                   >
                     <Brain className="mr-2 h-4 w-4" />
                     {groups.length > 0 ? "Reorganizar com IA" : "Separar Grupos com IA"}
                   </Button>
                   
-                  {!prompt.trim() && (
+                  {!projectDescription.trim() && (
                     <p className="text-xs text-amber-600 dark:text-amber-400 text-center">
-                      💡 Configure o prompt acima para usar a divisão com IA
+                      💡 Configure a descrição do projeto acima para usar a divisão com IA
                     </p>
                   )}
                   
@@ -1291,10 +1379,16 @@ export default function GroupDivision() {
                           {group.members.map((member) => (
                             <div
                               key={member.id}
-                              className="bg-white dark:bg-slate-800 rounded px-3 py-2 text-sm border border-blue-100 dark:border-blue-900"
+                              className={`rounded px-3 py-2 text-sm border ${
+                                member.id === group.leaderId
+                                  ? 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-400 dark:border-yellow-700'
+                                  : 'bg-white dark:bg-slate-800 border-blue-100 dark:border-blue-900'
+                              }`}
                             >
                               <span className="font-medium text-gray-900 dark:text-gray-100">
+                                {member.id === group.leaderId && '👑 '}
                                 {member.studentName}
+                                {member.id === group.leaderId && ' (Líder)'}
                               </span>
                               {member.studentEmail && (
                                 <div className="text-xs text-gray-500 dark:text-gray-400">

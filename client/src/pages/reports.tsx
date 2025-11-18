@@ -116,7 +116,7 @@ export default function Reports() {
           {/* Class Selection and Analytics */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Sidebar - Class List */}
-            <Card className="lg:col-span-1 dark:bg-gray-800 dark:border-gray-700">
+            <Card className="lg:col-span-1 bg-white dark:bg-gray-800 dark:border-gray-700">
               <CardHeader>
                 <CardTitle className="text-gray-900 dark:text-white">
                   Selecione um Formulário
@@ -175,7 +175,7 @@ export default function Reports() {
             {/* Right Panel - Analytics */}
             <div className="lg:col-span-2">
               {!selectedClassId ? (
-                <Card className="dark:bg-gray-800 dark:border-gray-700">
+                <Card className="bg-white dark:bg-gray-800 dark:border-gray-700">
                   <CardContent className="flex flex-col items-center justify-center py-16">
                     <PieChart className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" />
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -188,7 +188,7 @@ export default function Reports() {
                   </CardContent>
                 </Card>
               ) : analyticsLoading ? (
-                <Card className="dark:bg-gray-800 dark:border-gray-700">
+                <Card className="bg-white dark:bg-gray-800 dark:border-gray-700">
                   <CardContent className="flex items-center justify-center py-16">
                     <div className="text-center">
                       <Activity className="h-12 w-12 text-blue-600 dark:text-purple-400 animate-pulse mx-auto mb-4" />
@@ -199,7 +199,7 @@ export default function Reports() {
               ) : analytics ? (
                 <div className="space-y-6">
                   {/* Class Header */}
-                  <Card className="dark:bg-gray-800 dark:border-gray-700">
+                  <Card className="bg-white dark:bg-gray-800 dark:border-gray-700">
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <div>
@@ -247,7 +247,7 @@ export default function Reports() {
                   </Card>
 
                   {/* Question Analytics */}
-                  <Card className="dark:bg-gray-800 dark:border-gray-700">
+                  <Card className="bg-white dark:bg-gray-800 dark:border-gray-700">
                     <CardHeader>
                       <CardTitle className="text-gray-900 dark:text-white">
                         Análise por Questão

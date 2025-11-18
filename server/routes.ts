@@ -356,6 +356,27 @@ export function registerRoutes(app: Express): Server {
   });
 
   /**
+   * GET /api/class/:code/response-count
+   * Retorna a contagem de respostas para uma turma pelo código público
+   */
+  app.get('/api/class/:code/response-count', async (req, res) => {
+    try {
+      const { code } = req.params;
+      const classData = await storage.getClassByCode(code);
+      
+      if (!classData) {
+        return res.status(404).json({ message: "Class not found" });
+      }
+
+      const responses = await storage.getFormResponses(classData.id);
+      res.json({ count: responses.length });
+    } catch (error) {
+      console.error("Error fetching response count:", error);
+      res.status(500).json({ message: "Failed to fetch response count" });
+    }
+  });
+
+  /**
    * POST /api/class/:code/submit
    * Submete respostas do aluno para a turma
    * Espera dados do aluno e respostas no corpo
@@ -371,6 +392,14 @@ export function registerRoutes(app: Express): Server {
 
       if (!classData.isActive) {
         return res.status(400).json({ message: "This class is currently closed" });
+      }
+
+      // Check if class has reached the student limit
+      const responses = await storage.getFormResponses(classData.id);
+      if (responses.length >= classData.studentLimit) {
+        return res.status(400).json({ 
+          message: "Esta turma atingiu o limite máximo de respostas." 
+        });
       }
 
       const responseData = insertFormResponseSchema.parse({

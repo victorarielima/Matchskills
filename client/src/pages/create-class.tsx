@@ -220,13 +220,13 @@ export default function CreateClass() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
       {/* Sidebar */}
       <SidebarDashboard />
       
       {/* Main Content */}
-      <div className="flex-1 overflow-auto transition-all duration-300" style={{ marginLeft: 'var(--sidebar-width, 16rem)' }}>
-        <div className="p-8">
+      <div className="flex-1 transition-all duration-300" style={{ marginLeft: 'var(--sidebar-width, 16rem)' }}>
+        <div className="p-8 min-h-screen bg-gray-100 dark:bg-gray-900">
           <div className="max-w-4xl mx-auto">
           <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 transition-colors duration-200">
             <CardContent className="p-8">

@@ -35,6 +35,7 @@ export default function ParticipantForm() {
 
   // State to track if class is inactive (closed)
   const [isClassClosed, setIsClassClosed] = useState(false);
+  const [isClassFull, setIsClassFull] = useState(false);
 
   const { data: classData, isLoading: classLoading, error: classError } = useQuery<Class>({
     queryKey: ["/api/class", code],
@@ -45,6 +46,21 @@ export default function ParticipantForm() {
   const { data: questions = [], isLoading: questionsLoading } = useQuery<FormQuestion[]>({
     queryKey: ["/api/class", code, "questions"],
     enabled: !!code && !!classData,
+  });
+
+  // Check response count to see if class is full
+  const { data: responseCount = 0 } = useQuery<number>({
+    queryKey: ["/api/class", code, "response-count"],
+    enabled: !!code && !!classData,
+    queryFn: async () => {
+      try {
+        const response = await apiRequest("GET", `/api/class/${code}/response-count`);
+        return response?.count || 0;
+      } catch {
+        return 0;
+      }
+    },
+    refetchInterval: 5000, // Refetch every 5 seconds
   });
 
   const form = useForm<SubmitFormData>({
@@ -58,22 +74,24 @@ export default function ParticipantForm() {
 
   // Handle checkbox responses
   const handleCheckboxChange = (questionId: string, option: string, checked: boolean) => {
-    const currentValues = checkboxResponses[questionId] || [];
-    let newValues: string[];
-    
-    if (checked) {
-      newValues = [...currentValues, option];
-    } else {
-      newValues = currentValues.filter(value => value !== option);
-    }
-    
-    setCheckboxResponses(prev => ({
-      ...prev,
-      [questionId]: newValues
-    }));
-    
-    // Update form with JSON string representation for the form schema
-    form.setValue(`responses.${questionId}`, JSON.stringify(newValues));
+    setCheckboxResponses(prev => {
+      const currentValues = prev[questionId] || [];
+      let newValues: string[];
+      
+      if (checked) {
+        newValues = [...currentValues, option];
+      } else {
+        newValues = currentValues.filter(value => value !== option);
+      }
+      
+      // Update form state
+      form.setValue(`responses.${questionId}`, newValues);
+      
+      return {
+        ...prev,
+        [questionId]: newValues
+      };
+    });
   };
 
   const submitFormMutation = useMutation({
@@ -86,12 +104,11 @@ export default function ParticipantForm() {
       
       // For each question, get the response value
       questions.forEach((question) => {
-        // Try to get the value from the form
         let responseValue: any = formValues.responses?.[question.id];
         
-        // For checkboxes, use our separate state
-        if (question.type === 'checkbox' && checkboxResponses[question.id]?.length > 0) {
-          responseValue = checkboxResponses[question.id];
+        // For checkboxes, always use our separate state which is the source of truth
+        if (question.type === 'checkbox') {
+          responseValue = checkboxResponses[question.id] || [];
         }
         
         // Only include non-empty responses
@@ -143,6 +160,13 @@ export default function ParticipantForm() {
       }
     }
   }, [classError, setLocation, toast]);
+
+  // Check if class has reached student limit
+  useEffect(() => {
+    if (classData && responseCount >= classData.studentLimit) {
+      setIsClassFull(true);
+    }
+  }, [classData, responseCount]);
 
   const onSubmit = (data: SubmitFormData) => {
     // Validate required questions
@@ -209,6 +233,42 @@ export default function ParticipantForm() {
     );
   }
 
+  // Check if class has reached student limit
+  if (isClassFull) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <AutoDarkModeDetector />
+        <div className="max-w-md mx-auto px-4">
+          <AnimatedLogo size="lg" showText={true} className="justify-center mb-6" />
+          <Card className="text-center border-orange-200 bg-orange-50 dark:border-orange-700 dark:bg-orange-900/20">
+            <CardContent className="p-8">
+              <div className="mx-auto h-16 w-16 text-orange-600 dark:text-orange-400 mb-4 flex items-center justify-center">
+                <Users className="w-16 h-16" />
+              </div>
+              <h1 className="text-xl font-bold text-orange-800 dark:text-orange-200 mb-3">Turma Completa</h1>
+              <p className="text-orange-700 dark:text-orange-300 mb-4 leading-relaxed">
+                Esta turma atingiu o limite máximo de participantes e não está mais aceitando novas respostas.
+              </p>
+              <p className="text-orange-600 dark:text-orange-400 text-sm mb-6">
+                Tente novamente mais tarde ou entre em contato com o organizador.
+              </p>
+              <div className="space-y-3">
+                <Button 
+                  onClick={() => setLocation("/")} 
+                  variant="outline"
+                  className="w-full border-orange-300 text-orange-700 hover:bg-orange-100 dark:border-orange-500 dark:text-orange-300 dark:hover:bg-orange-900/30"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Voltar para Página Inicial
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   if (!classData) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -252,7 +312,7 @@ export default function ParticipantForm() {
         <AutoDarkModeDetector />
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <AnimatedLogo size="lg" showText={true} className="justify-center mb-6" />
-          <Card className="text-center dark:bg-gray-800 dark:border-gray-700">
+          <Card className="text-center bg-white dark:bg-gray-800 dark:border-gray-700">
             <CardContent className="p-8">
               <GraduationCap className="mx-auto h-16 w-16 text-secondary mb-4" />
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Respostas Enviadas!</h1>
@@ -275,7 +335,7 @@ export default function ParticipantForm() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AnimatedLogo size="lg" showText={true} className="justify-center mb-6" />
         {/* Class Header */}
-        <Card className="mb-6 border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+        <Card className="mb-6 border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700">
           <CardContent className="p-6">
             <div className="text-center">
               <Users className="mx-auto h-12 w-12 text-blue-600 dark:text-purple-500 mb-4" />
@@ -289,11 +349,11 @@ export default function ParticipantForm() {
         </Card>
 
         {/* Student Form */}
-        <Card className="border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <Card className="border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Formulário de Avaliação</h2>
-              <p className="text-sm text-gray-600 mt-1">Todas as perguntas marcadas com * são obrigatórias</p>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Formulário de Avaliação</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Todas as perguntas marcadas com * são obrigatórias</p>
             </div>
             <Button
               variant="outline"
@@ -309,14 +369,15 @@ export default function ParticipantForm() {
           <CardContent className="p-6">
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* Student Info */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-gray-900 mb-3">Informações do Participante</h3>
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Informações do Participante</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="participantName">Nome Completo *</Label>
+                    <Label htmlFor="participantName" className="dark:text-gray-300">Nome Completo *</Label>
                     <Input
                       {...form.register("participantName")}
-                      className="mt-1"
+                      className="mt-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+                      placeholder="Digite seu nome..."
                       required
                     />
                     {form.formState.errors.participantName && (
@@ -326,11 +387,12 @@ export default function ParticipantForm() {
                     )}
                   </div>
                   <div>
-                    <Label htmlFor="participantEmail">E-mail</Label>
+                    <Label htmlFor="participantEmail" className="dark:text-gray-300">E-mail</Label>
                     <Input
                       {...form.register("participantEmail")}
                       type="email"
-                      className="mt-1"
+                      className="mt-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+                      placeholder="seu.email@exemplo.com"
                     />
                     {form.formState.errors.participantEmail && (
                       <p className="text-red-500 text-sm mt-1">
@@ -343,85 +405,96 @@ export default function ParticipantForm() {
 
               {/* Form Questions */}
               {questions.map((question, index) => (
-                <div key={question.id} className="border border-gray-200 rounded-lg p-4">
+                <div key={question.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 dark:bg-gray-700/30">
                   <div className="mb-3">
-                    <Label className="block text-sm font-medium text-gray-700">
+                    <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       {index + 1}. {question.question} {question.isRequired && "*"}
                     </Label>
                   </div>
                   
                   {question.type === "text" && (
                     <Input
-                      {...form.register(`responses.${question.id}`)}
-                      required={!!question.isRequired}
+                      id={`text-${question.id}`}
+                      {...form.register(`responses.${question.id}`, {
+                        required: question.isRequired ? "Este campo é obrigatório" : false,
+                      })}
+                      className="mt-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+                      placeholder="Digite aqui..."
                     />
                   )}
                   
                   {question.type === "textarea" && (
                     <Textarea
-                      {...form.register(`responses.${question.id}`)}
+                      id={`textarea-${question.id}`}
+                      {...form.register(`responses.${question.id}`, {
+                        required: question.isRequired ? "Este campo é obrigatório" : false,
+                      })}
                       rows={4}
-                      required={!!question.isRequired}
+                      className="mt-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+                      placeholder="Digite aqui..."
                     />
                   )}
                   
                   {question.type === "radio" && question.options && (
                     <RadioGroup
+                      value={form.watch(`responses.${question.id}`) || ""}
                       onValueChange={(value) => form.setValue(`responses.${question.id}`, value)}
+                      className="mt-2 space-y-2"
                     >
                       {question.options.map((option, optionIndex) => (
                         <div key={optionIndex} className="flex items-center space-x-2">
-                          <RadioGroupItem value={option} id={`${question.id}-${optionIndex}`} />
-                          <Label htmlFor={`${question.id}-${optionIndex}`}>{option}</Label>
+                          <RadioGroupItem value={option} id={`radio-${question.id}-${optionIndex}`} />
+                          <Label htmlFor={`radio-${question.id}-${optionIndex}`} className="cursor-pointer dark:text-gray-300">{option}</Label>
                         </div>
                       ))}
                     </RadioGroup>
                   )}
 
                   {question.type === "checkbox" && question.options && (
-                    <div className="space-y-2">
+                    <div className="space-y-2 mt-2">
                       {question.options.map((option, optionIndex) => (
                         <div key={optionIndex} className="flex items-center space-x-2">
                           <Checkbox
-                            id={`${question.id}-${optionIndex}`}
+                            id={`checkbox-${question.id}-${optionIndex}`}
                             checked={(checkboxResponses[question.id] || []).includes(option)}
                             onCheckedChange={(checked) => 
                               handleCheckboxChange(question.id, option, !!checked)
                             }
                           />
-                          <Label htmlFor={`${question.id}-${optionIndex}`}>{option}</Label>
+                          <Label htmlFor={`checkbox-${question.id}-${optionIndex}`} className="cursor-pointer dark:text-gray-300">{option}</Label>
                         </div>
                       ))}
                     </div>
                   )}
                   
-                  {question.type === "scale" && question.scaleMin && question.scaleMax && (
-                    <div className="flex items-center justify-between bg-gray-50 rounded-lg p-4">
-                      <span className="text-sm text-gray-600">{question.scaleMin} (Baixo)</span>
+                  {question.type === "scale" && question.scaleMin !== undefined && question.scaleMax !== undefined && (
+                    <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mt-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">{question.scaleMin} (Baixo)</span>
                       <RadioGroup
-                        className="flex space-x-2"
+                        value={form.watch(`responses.${question.id}`) || ""}
                         onValueChange={(value) => form.setValue(`responses.${question.id}`, value)}
+                        className="flex space-x-2"
                       >
                         {Array.from({ length: question.scaleMax - question.scaleMin + 1 }, (_, i) => {
                           const value = question.scaleMin! + i;
                           return (
                             <div key={value} className="flex flex-col items-center">
-                              <RadioGroupItem value={value.toString()} id={`${question.id}-${value}`} />
-                              <Label htmlFor={`${question.id}-${value}`} className="text-sm">
+                              <RadioGroupItem value={value.toString()} id={`scale-${question.id}-${value}`} />
+                              <Label htmlFor={`scale-${question.id}-${value}`} className="text-sm cursor-pointer dark:text-gray-300">
                                 {value}
                               </Label>
                             </div>
                           );
                         })}
                       </RadioGroup>
-                      <span className="text-sm text-gray-600">{question.scaleMax} (Alto)</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">{question.scaleMax} (Alto)</span>
                     </div>
                   )}
                 </div>
               ))}
 
               {/* Submit Button */}
-              <div className="pt-6 border-t border-gray-200 space-y-3">
+              <div className="pt-6 border-t border-gray-200 dark:border-gray-700 space-y-3">
                 <div className="flex gap-3">
                   <Button
                     type="button"
@@ -441,7 +514,7 @@ export default function ParticipantForm() {
                     {submitFormMutation.isPending ? "Enviando..." : "Enviar Respostas"}
                   </Button>
                 </div>
-                <p className="text-xs text-gray-500 mt-2 text-center">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
                   Suas respostas serão enviadas de forma anônima para análise do organizador
                 </p>
               </div>
