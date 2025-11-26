@@ -1,0 +1,48 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "env": {
+    "NODE_ENV": "production",
+    "SUPABASE_URL": "@supabase_url",
+    "SUPABASE_ANON_KEY": "@supabase_anon_key",
+    "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key",
+    "DATABASE_URL": "@database_url",
+    "SESSION_SECRET": "@session_secret",
+    "VITE_N8N_WEBHOOK_URL": "@vite_n8n_webhook_url"
+  },
+  "functions": {
+    "dist/index.js": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 30
+    }
+  },
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/static/$1",
+      "headers": {
+        "Cache-Control": "public, max-age=3600"
+      }
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "dist/index.js"
+    },
+    {
+      "src": "/docs(.*)",
+      "dest": "dist/index.js"
+    },
+    {
+      "src": "/.*\\.(?:js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$",
+      "dest": "dist/public/$0",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "src": "/(.*)",
+      "dest": "dist/index.js"
+    }
+  ]
+}
