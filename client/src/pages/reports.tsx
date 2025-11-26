@@ -34,6 +34,12 @@ interface ClassAnalytics {
   questionAnalytics: QuestionAnalytics[];
   completionRate: number;
   lastResponseDate?: string;
+  individualResponses?: Array<{
+    participantId: string;
+    participantName: string;
+    submittedAt: string;
+    responses: Record<string, any>;
+  }>;
 }
 
 // Função para normalizar texto (remove espaços extras, pontuação, converte para minúsculas)
@@ -84,6 +90,13 @@ export default function Reports() {
   const { data: analytics, isLoading: analyticsLoading } = useQuery<ClassAnalytics>({
     queryKey: selectedClassId ? [`/api/analytics/${selectedClassId}`] : [],
     enabled: !!selectedClassId,
+    onSuccess: (data) => {
+      console.log("Analytics carregadas:", {
+        totalRespostas: data.totalResponses,
+        temIndividualResponses: !!data.individualResponses,
+        qtdIndividualResponses: data.individualResponses?.length || 0,
+      });
+    },
   });
 
   const activeClasses = classes.filter(c => c.isActive);
@@ -418,6 +431,70 @@ export default function Reports() {
                       </div>
                     </CardContent>
                   </Card>
+
+                  {/* Individual Responses */}
+                  {analytics.individualResponses && analytics.individualResponses.length > 0 && (
+                    <Card className="bg-white dark:bg-gray-800 dark:border-gray-700">
+                      <CardHeader>
+                        <CardTitle className="text-gray-900 dark:text-white">
+                          Respostas Individuais
+                        </CardTitle>
+                        <CardDescription className="dark:text-gray-400">
+                          Perguntas e respostas de cada participante ({analytics.individualResponses.length} participantes)
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-8">
+                          {analytics.individualResponses.map((participant, pIdx) => (
+                            <div key={participant.participantId || pIdx}>
+                              {pIdx > 0 && <Separator className="my-6 dark:bg-gray-700" />}
+                              
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between mb-4 bg-gray-100 dark:bg-gray-700/50 p-3 rounded">
+                                  <h4 className="font-bold text-lg text-gray-900 dark:text-white">
+                                    {participant.participantName}
+                                  </h4>
+                                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                                    {new Date(participant.submittedAt).toLocaleDateString('pt-BR')} às {new Date(participant.submittedAt).toLocaleTimeString('pt-BR')}
+                                  </span>
+                                </div>
+                                
+                                <div className="space-y-4">
+                                  {analytics.questions && analytics.questions.length > 0 ? (
+                                    analytics.questions.map((question, qIdx) => {
+                                      const response = participant.responses?.[question.id];
+                                      return (
+                                        <div key={question.id} className="border-l-4 border-blue-500 bg-gray-50 dark:bg-gray-800 p-4 rounded">
+                                          <p className="font-semibold text-gray-900 dark:text-white mb-2">
+                                            {qIdx + 1}. {question.question}
+                                          </p>
+                                          <div className="text-gray-700 dark:text-gray-300 pl-4 py-2 bg-white dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
+                                            {Array.isArray(response) ? (
+                                              <ul className="list-disc list-inside space-y-1">
+                                                {response.map((item: string, idx: number) => (
+                                                  <li key={idx}>{item}</li>
+                                                ))}
+                                              </ul>
+                                            ) : response !== null && response !== undefined && response !== '' ? (
+                                              <span>{String(response)}</span>
+                                            ) : (
+                                              <span className="text-gray-400 italic">(Sem resposta)</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })
+                                  ) : (
+                                    <p className="text-gray-500 dark:text-gray-400">Nenhuma pergunta disponível</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               ) : null}
             </div>

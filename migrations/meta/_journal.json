@@ -36,6 +36,27 @@
       "when": 1758123406687,
       "tag": "0004_mute_sasquatch",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1758123406688,
+      "tag": "0005_add_leader_field",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1758123406689,
+      "tag": "0006_add_ai_analysis_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1758123406690,
+      "tag": "0007_recreate_strengths_attention",
+      "breakpoints": true
     }
   ]
 }

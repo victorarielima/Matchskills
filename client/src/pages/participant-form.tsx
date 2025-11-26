@@ -46,6 +46,13 @@ export default function ParticipantForm() {
   const { data: questions = [], isLoading: questionsLoading } = useQuery<FormQuestion[]>({
     queryKey: ["/api/class", code, "questions"],
     enabled: !!code && !!classData,
+    queryFn: async () => {
+      const res = await fetch(`/api/class/${code}/questions`);
+      if (!res.ok) throw new Error('Failed to fetch questions');
+      const data = await res.json();
+      console.log("📋 Questions carregadas do servidor:", data.map((q: any) => ({ id: q.id, question: q.question })));
+      return data;
+    }
   });
 
   // Check response count to see if class is full
@@ -99,6 +106,12 @@ export default function ParticipantForm() {
       // Get all form values
       const formValues = form.getValues();
       
+      console.log("🔍 Submissão iniciada");
+      console.log("📋 Questions disponíveis:", questions.length);
+      questions.forEach((q, idx) => {
+        console.log(`  Q${idx}: ${q.id} = ${q.question}`);
+      });
+      
       // Create a fresh responses object using question IDs directly
       const responsesByQuestionId: Record<string, any> = {};
       
@@ -117,11 +130,22 @@ export default function ParticipantForm() {
         }
       });
       
+      console.log("✅ Respostas construídas com IDs:", Object.keys(responsesByQuestionId));
+      Object.entries(responsesByQuestionId).slice(0, 3).forEach(([k, v]) => {
+        console.log(`  ${k} = ${v}`);
+      });
+      
       const submissionData = {
         studentName: data.participantName,
         studentEmail: data.participantEmail || null,
         responses: responsesByQuestionId,
       };
+      
+      console.log("📤 Enviando para servidor:", {
+        studentName: submissionData.studentName,
+        studentEmail: submissionData.studentEmail,
+        responsesKeys: Object.keys(submissionData.responses)
+      });
       
       return await apiRequest("POST", `/api/class/${code}/submit`, submissionData);
     },

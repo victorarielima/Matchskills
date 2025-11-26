@@ -1,0 +1,133 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "id": "0007_recreate_strengths_attention",
+  "prevId": "0006_add_ai_analysis_fields",
+  "tables": {
+    "group_members": {
+      "name": "group_members",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "division_id": {
+          "name": "division_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "group_number": {
+          "name": "group_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "form_response_id": {
+          "name": "form_response_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_leader": {
+          "name": "is_leader",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "strengths": {
+          "name": "strengths",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "ARRAY[]::text[]"
+        },
+        "attention": {
+          "name": "attention",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "ARRAY[]::text[]"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_group_members_strengths": {
+          "name": "idx_group_members_strengths",
+          "columns": [
+            {
+              "expression": "strengths",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "method": "gin",
+          "where": null
+        },
+        "idx_group_members_attention": {
+          "name": "idx_group_members_attention",
+          "columns": [
+            {
+              "expression": "attention",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "method": "gin",
+          "where": null
+        }
+      },
+      "foreignKeys": {
+        "group_members_division_id_group_divisions_id_fk": {
+          "name": "group_members_division_id_group_divisions_id_fk",
+          "tableFrom": "group_members",
+          "tableTo": "group_divisions",
+          "columnsFrom": [
+            "division_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "group_members_form_response_id_form_responses_id_fk": {
+          "name": "group_members_form_response_id_form_responses_id_fk",
+          "tableFrom": "group_members",
+          "tableTo": "form_responses",
+          "columnsFrom": [
+            "form_response_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": [],
+      "uniqueConstraints": {}
+    }
+  },
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  }
+}

@@ -395,7 +395,8 @@ export class DatabaseStorage implements IStorage {
     groups: any[] 
   }): Promise<GroupDivision> {
     try {
-      console.log('📊 Criando divisão com dados:', JSON.stringify(data.groups[0], null, 2));
+      console.log('📊 Criando divisão com dados:');
+      console.log(JSON.stringify(data.groups, null, 2).substring(0, 1000));
       
       // Create the division
       const divisionData: InsertGroupDivision = {
@@ -407,25 +408,48 @@ export class DatabaseStorage implements IStorage {
 
       const [division] = await db.insert(groupDivisions).values(divisionData).returning();
 
-      // Create group members
-      const memberData: InsertGroupMember[] = [];
+      // Create group members - usando SQL raw para garantir inserção correta de arrays
+      let totalSaved = 0;
       for (const group of data.groups) {
         console.log(`👥 Processando grupo ${group.groupNumber}, leaderId: ${group.leaderId}`);
         for (const member of group.members) {
           const isLeader = member.id === group.leaderId;
-          console.log(`  └─ Membro ${member.studentName} (${member.id}): isLeader=${isLeader}`);
-          memberData.push({
-            divisionId: division.id,
-            groupNumber: group.groupNumber,
-            formResponseId: member.id,
-            isLeader, // Marcar como líder se for o leaderId do grupo
-          });
+          const strengthsArray = Array.isArray(member.strengths) ? member.strengths.filter((s: string) => s && s.length > 0) : [];
+          const attentionArray = Array.isArray(member.attention) ? member.attention.filter((a: string) => a && a.length > 0) : [];
+          
+          console.log(`  └─ Membro ${member.studentName} (${member.id}):`);
+          console.log(`     isLeader=${isLeader}`);
+          console.log(`     strengths=${strengthsArray.length} items: ${strengthsArray.slice(0, 2).join("; ")}`);
+          console.log(`     attention=${attentionArray.length} items: ${attentionArray.slice(0, 2).join("; ")}`);
+          
+          // Construir SQL para os arrays
+          const strengthsSQL = strengthsArray.length > 0 
+            ? `ARRAY[${strengthsArray.map((s: string) => `'${s.replace(/'/g, "''")}'`).join(',')}]::text[]`
+            : `ARRAY[]::text[]`;
+          const attentionSQL = attentionArray.length > 0
+            ? `ARRAY[${attentionArray.map((a: string) => `'${a.replace(/'/g, "''")}'`).join(',')}]::text[]`
+            : `ARRAY[]::text[]`;
+          
+          // Inserir usando raw SQL para garantir que os arrays funcionem
+          await db.execute(sql`
+            INSERT INTO group_members (division_id, group_number, form_response_id, is_leader, strengths, attention, created_at)
+            VALUES (
+              ${division.id},
+              ${group.groupNumber},
+              ${member.id},
+              ${isLeader},
+              ${sql.raw(strengthsSQL)},
+              ${sql.raw(attentionSQL)},
+              NOW()
+            )
+          `);
+          
+          totalSaved++;
+          console.log(`     ✅ Membro inserido com sucesso`);
         }
       }
 
-      if (memberData.length > 0) {
-        await db.insert(groupMembers).values(memberData);
-      }
+      console.log(`✅ Total de ${totalSaved} membros salvos no banco de dados com sucesso!`);
 
       return division;
     } catch (error) {
@@ -441,6 +465,8 @@ export class DatabaseStorage implements IStorage {
           groupNumber: groupMembers.groupNumber,
           formResponseId: groupMembers.formResponseId,
           isLeader: groupMembers.isLeader,
+          strengths: groupMembers.strengths,
+          attention: groupMembers.attention,
           studentName: formResponses.studentName,
           studentEmail: formResponses.studentEmail,
           responses: formResponses.responses,
@@ -469,7 +495,9 @@ export class DatabaseStorage implements IStorage {
           studentEmail: row.studentEmail,
           responses: row.responses,
           submittedAt: row.submittedAt,
-          isLeader: row.isLeader
+          isLeader: row.isLeader,
+          strengths: row.strengths || [], // Incluir pontos fortes
+          attention: row.attention || [] // Incluir pontos de atenção
         };
         
         // Se este membro é líder, armazenar seu ID no grupo
@@ -490,6 +518,10 @@ export class DatabaseStorage implements IStorage {
 
   async updateGroupDivision(divisionId: string, data: { name: string; membersPerGroup: number; prompt: string; groups: any[] }): Promise<void> {
     try {
+      console.log('🔄 Atualizando divisão:', divisionId);
+      console.log('📊 Dados recebidos:');
+      console.log(JSON.stringify(data.groups, null, 2).substring(0, 1000));
+      
       await db.transaction(async (tx) => {
         // Update the division details
         await tx
@@ -507,19 +539,33 @@ export class DatabaseStorage implements IStorage {
           .delete(groupMembers)
           .where(eq(groupMembers.divisionId, divisionId));
 
-        // Insert new group members
+        // Insert new group members - inserção individual com controle de arrays
+        let totalMembers = 0;
         for (const group of data.groups) {
+          console.log(`👥 Processando grupo ${group.groupNumber}, leaderId: ${group.leaderId}`);
           for (const member of group.members) {
-            await tx.insert(groupMembers).values({
-              id: crypto.randomUUID(),
+            const strengthsArray = Array.isArray(member.strengths) ? member.strengths.filter((s: string) => s && s.length > 0) : [];
+            const attentionArray = Array.isArray(member.attention) ? member.attention.filter((a: string) => a && a.length > 0) : [];
+            
+            console.log(`  └─ Membro ${member.studentName}:`);
+            console.log(`     strengths=${strengthsArray.length} items`);
+            console.log(`     attention=${attentionArray.length} items`);
+            
+            const memberRecord: InsertGroupMember = {
               divisionId: divisionId,
               formResponseId: member.id,
               groupNumber: group.groupNumber,
-              isLeader: member.id === group.leaderId, // Marcar como líder se for o leaderId do grupo
-              createdAt: new Date()
-            });
+              isLeader: member.id === group.leaderId,
+              strengths: strengthsArray.length > 0 ? strengthsArray : [],
+              attention: attentionArray.length > 0 ? attentionArray : [],
+            };
+            
+            await tx.insert(groupMembers).values(memberRecord);
+            totalMembers++;
           }
         }
+
+        console.log(`✅ ${totalMembers} membros salvos com sucesso!`);
       });
 
       console.log('✅ Group division updated successfully:', divisionId);

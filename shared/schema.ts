@@ -101,6 +101,8 @@ export const groupMembers = pgTable("group_members", {
   groupNumber: integer("group_number").notNull(), // 1, 2, 3, etc.
   formResponseId: varchar("form_response_id").notNull().references(() => formResponses.id, { onDelete: 'cascade' }),
   isLeader: boolean("is_leader").default(false),
+  strengths: text("strengths").array().default(sql`ARRAY[]::text[]`), // Array de pontos fortes
+  attention: text("attention").array().default(sql`ARRAY[]::text[]`), // Array de pontos de atenção
   createdAt: timestamp("created_at").defaultNow(),
 });
 

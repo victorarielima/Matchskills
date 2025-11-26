@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, requireAuth } from "./auth";
 import { insertClassSchema, insertFormQuestionSchema, insertFormResponseSchema } from "@shared/schema";
+import { parseAndValidateAIResponse, validateCompleteDivision, formatValidationReport } from "@shared/ai-validation";
 import { z } from "zod";
 
 export function registerRoutes(app: Express): Server {
@@ -195,7 +196,7 @@ export function registerRoutes(app: Express): Server {
 
   /**
    * GET /api/classes/:classId/responses
-   * Retorna todas as respostas dos alunos para uma turma
+   * Retorna todas as respostas dos alunos para uma turma com mapeamento de perguntas
    */
   app.get('/api/classes/:classId/responses', requireAuth, async (req: any, res) => {
     try {
@@ -208,7 +209,21 @@ export function registerRoutes(app: Express): Server {
         return res.status(403).json({ message: "Access denied" });
       }
 
+      // Buscar respostas
       const responses = await storage.getClassResponses(classId);
+      
+      // Log para debug
+      if (responses.length > 0) {
+        const firstResponse = responses[0];
+        console.log("📥 Primeira resposta do banco:", {
+          studentName: firstResponse.studentName,
+          responsesKeys: Object.keys(firstResponse.responses || {}).slice(0, 3),
+          responsesValues: Object.values(firstResponse.responses || {}).slice(0, 3)
+        });
+      }
+      
+      // As respostas já estão com os IDs corretos de form_questions
+      // (foram salvas dessa forma no submitFormResponse)
       res.json(responses);
     } catch (error) {
       console.error("Error fetching responses:", error);
@@ -402,12 +417,37 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
+      const responsesObj = req.body.responses || {};
+      const responsesEntries = Object.entries(responsesObj).slice(0, 3);
+      
+      console.log("📝 Dados recebidos do formulário:", {
+        studentName: req.body.studentName,
+        studentEmail: req.body.studentEmail,
+        totalRespostas: Object.keys(responsesObj).length,
+        primeirasTresRespostas: responsesEntries.map(([key, val]) => ({ key, val: String(val).substring(0, 50) }))
+      });
+
       const responseData = insertFormResponseSchema.parse({
         ...req.body,
         classId: classData.id,
       });
 
+      console.log("✅ Após validação schema:", {
+        classId: responseData.classId,
+        totalRespostas: Object.keys(responseData.responses || {}).length,
+        primeirasTresRespostas: Object.entries(responseData.responses || {}).slice(0, 3).map(([key, val]) => ({ key, val: String(val).substring(0, 50) }))
+      });
+
       const response = await storage.submitFormResponse(responseData);
+      
+      console.log("💾 Resposta salva no banco:", {
+        id: response[0]?.id,
+        classId: response[0]?.classId,
+        studentName: response[0]?.studentName,
+        totalRespostas: Object.keys(response[0]?.responses || {}).length,
+        primeirasTresRespostas: Object.entries(response[0]?.responses || {}).slice(0, 3).map(([key, val]) => ({ key, val: String(val).substring(0, 50) }))
+      });
+      
       res.json(response);
     } catch (error) {
       console.error("Error submitting response:", error);
@@ -467,6 +507,67 @@ export function registerRoutes(app: Express): Server {
   });
 
   /**
+   * POST /api/validate-ai-response
+   * Valida a resposta do agente de IA antes de salvar os grupos
+   */
+  app.post('/api/validate-ai-response', requireAuth, async (req: any, res) => {
+    try {
+      const { aiResponse, availableStudents } = req.body;
+
+      console.log("🔍 Validando resposta da IA...");
+      console.log(`   Estudantes disponíveis: ${availableStudents.length}`);
+
+      // Etapa 1: Parse e validação da estrutura
+      let validatedResponse;
+      try {
+        validatedResponse = parseAndValidateAIResponse(aiResponse);
+        console.log("✅ Resposta parseada com sucesso");
+      } catch (parseError) {
+        console.error("❌ Erro ao parsear resposta:", parseError);
+        return res.status(400).json({
+          valid: false,
+          error: parseError instanceof Error ? parseError.message : "Erro ao parsear resposta",
+          type: "parse_error"
+        });
+      }
+
+      // Etapa 2: Validação de integridade com estudantes disponíveis
+      const divisionValidation = validateCompleteDivision(validatedResponse, availableStudents);
+
+      if (!divisionValidation.isValid) {
+        console.error("❌ Validação falhou:", divisionValidation.globalErrors);
+        return res.status(400).json({
+          valid: false,
+          error: divisionValidation.globalErrors.join("; "),
+          type: "integrity_error",
+          details: divisionValidation,
+          report: formatValidationReport(divisionValidation)
+        });
+      }
+
+      console.log("✅ Validação passou:");
+      console.log(formatValidationReport(divisionValidation));
+
+      // Retornar resposta validada com relatório
+      res.json({
+        valid: true,
+        message: "Resposta validada com sucesso",
+        data: validatedResponse,
+        report: formatValidationReport(divisionValidation),
+        summary: divisionValidation.summary
+      });
+
+    } catch (error) {
+      console.error("Erro ao validar resposta da IA:", error);
+      res.status(500).json({
+        valid: false,
+        error: "Erro interno ao validar resposta",
+        type: "server_error"
+      });
+    }
+  });
+
+  /**
    * POST /api/classes/:classId/group-divisions
    * Cria uma nova divisão de grupos
    */
@@ -482,12 +583,19 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Class not found or access denied" });
       }
 
+      // Converter formato da resposta do agente: students → members
+      const formattedGroups = groups.map((group: any) => ({
+        groupNumber: group.groupNumber,
+        leaderId: group.leaderId,
+        members: group.students || group.members || [] // Suportar ambos os formatos
+      }));
+
       const division = await storage.createGroupDivision({
         classId,
         name,
         membersPerGroup,
         prompt,
-        groups
+        groups: formattedGroups
       });
       
       res.json(division);
@@ -515,12 +623,19 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Class not found or access denied" });
       }
 
+      // Converter formato da resposta do agente: students → members
+      const formattedGroups = groups.map((group: any) => ({
+        groupNumber: group.groupNumber,
+        leaderId: group.leaderId,
+        members: group.students || group.members || [] // Suportar ambos os formatos
+      }));
+
       // Update the division
       await storage.updateGroupDivision(divisionId, {
         name,
         membersPerGroup,
         prompt,
-        groups
+        groups: formattedGroups
       });
 
       console.log('✅ Group division updated successfully');
@@ -693,6 +808,18 @@ export function registerRoutes(app: Express): Server {
         lastResponseDate: responses.length > 0 
           ? responses[responses.length - 1].submittedAt 
           : null,
+        // Adiciona respostas individuais de cada participante
+        individualResponses: responses.map((response: any) => {
+          const responseData = typeof response.responses === 'string' 
+            ? JSON.parse(response.responses) 
+            : response.responses;
+          return {
+            participantId: response.studentId,
+            participantName: response.studentName || 'Participante Desconhecido',
+            submittedAt: response.submittedAt,
+            responses: responseData,
+          };
+        }),
       };
 
       res.json(analytics);
