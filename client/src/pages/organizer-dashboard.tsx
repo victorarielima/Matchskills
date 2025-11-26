@@ -265,46 +265,6 @@ export default function OrganizerDashboard() {
     toggleStatusMutation.mutate({ id: classItem.id, isActive: !classItem.isActive });
   };
 
-  const handleNotifyGroups = async (classItem: Class) => {
-    try {
-      const response = await fetch(`/api/classes/${classItem.id}/notify-groups`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        const contentType = response.headers.get('content-type');
-        let errorMessage = 'Erro ao enviar notificações';
-        
-        if (contentType?.includes('application/json')) {
-          const error = await response.json();
-          errorMessage = error.message || errorMessage;
-        } else {
-          errorMessage = `Erro ${response.status}: ${response.statusText}`;
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      const result = await response.json();
-      
-      toast({
-        title: "Sucesso!",
-        description: `${result.totalSent} notificações foram enviadas para os membros dos grupos.`,
-      });
-    } catch (error) {
-      console.error("Erro ao notificar grupos:", error);
-      toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Falha ao enviar notificações. Tente novamente.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const openDeleteDialog = (classItem: Class) => {
     setDeletingClass(classItem);
   };
@@ -646,12 +606,6 @@ export default function OrganizerDashboard() {
                                         </>
                                       )}
                                     </DropdownMenuItem>
-                                    {!classItem.isActive && (
-                                      <DropdownMenuItem onClick={() => handleNotifyGroups(classItem)}>
-                                        <Activity className="mr-2 h-4 w-4" />
-                                        Notificar Grupos
-                                      </DropdownMenuItem>
-                                    )}
                                     <DropdownMenuItem onClick={() => openColorDialog(classItem)}>
                                       <Palette className="mr-2 h-4 w-4" />
                                       Mudar Cor
