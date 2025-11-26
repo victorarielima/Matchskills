@@ -10,6 +10,14 @@ export function registerRoutes(app: Express): Server {
   // Auth middleware
   setupAuth(app);
 
+  // Middleware de log para debug
+  app.use((req, res, next) => {
+    if (req.path.includes('notify-groups')) {
+      console.log(`🔍 DEBUG: ${req.method} ${req.path} - Headers:`, req.headers);
+    }
+    next();
+  });
+
   // Teacher routes
     /**
      * GET /api/classes
@@ -878,6 +886,127 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error fetching analytics:", error);
       res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  });
+
+  /**
+   * POST /api/classes/:classId/notify-groups
+   * Envia notificações para os membros dos grupos
+   */
+  app.post('/api/classes/:classId/notify-groups', requireAuth, async (req: any, res) => {
+    try {
+      console.log("📧 POST /api/classes/:classId/notify-groups iniciado");
+      const { classId } = req.params;
+      const teacherId = req.user.id;
+
+      console.log("ClassId:", classId, "TeacherId:", teacherId);
+
+      // Verify teacher owns this class
+      const classData = await storage.getClassById(classId);
+      console.log("Class encontrada:", !!classData);
+      
+      if (!classData || classData.teacherId !== teacherId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Get the division with groups
+      console.log("Buscando divisões para classId:", classId);
+      const divisions = await storage.getGroupDivisions(classId);
+      console.log("Divisões encontradas:", divisions.length);
+      
+      if (divisions.length === 0) {
+        return res.status(400).json({ message: "No group division found" });
+      }
+
+      const division = divisions[0];
+      console.log("Buscando membros para divisionId:", division.id);
+      
+      const members = await storage.getGroupMembers(division.id);
+      console.log("Membros encontrados:", members.length);
+      console.log("Estrutura completa dos membros:", JSON.stringify(members, null, 2));
+
+      // Agrupar por groupNumber
+      const groupsMap = new Map<number, any[]>();
+      
+      for (const member of members) {
+        if (!groupsMap.has(member.groupNumber)) {
+          groupsMap.set(member.groupNumber, []);
+        }
+        groupsMap.get(member.groupNumber)!.push(member);
+      }
+
+      console.log("Grupos criados:", groupsMap.size);
+
+      // Construir um ÚNICO objeto com TODOS os grupos
+      const payloadGrupos: any[] = [];
+
+      for (const [groupNumber, groupMembers] of groupsMap) {
+        console.log(`\n📦 Processando Grupo ${groupNumber} com ${groupMembers.length} membros`);
+        
+        // Construir lista de membros para este grupo
+        const membrosGrupo = groupMembers.map(member => ({
+          nome: member.studentName || 'Desconhecido',
+          email: member.studentEmail || ''
+        }));
+
+        // Construir mensagem simples
+        const nomesMembros = membrosGrupo.map(m => m.nome).join(', ');
+        const message = `A divisão de grupos foi concluída. O Grupo ${groupNumber} é composto por: ${nomesMembros}. Entre em contato com os outros membros para começar a trabalhar juntos.`;
+
+        payloadGrupos.push({
+          grupo: groupNumber,
+          membros: membrosGrupo,
+          mensagem: message
+        });
+      }
+
+      console.log("Total de grupos a enviar:", payloadGrupos.length);
+
+      // Construir payload único
+      const payloadCompleto = {
+        classId: classId,
+        timestamp: new Date().toISOString(),
+        grupos: payloadGrupos
+      };
+
+      console.log("📤 Enviando payload completo para webhook:", JSON.stringify(payloadCompleto, null, 2));
+
+      // Send single notification to webhook
+      const webhookUrl = "https://n8n.nexosoftwere.cloud/webhook/7206e7fb-2153-454f-bac5-62118e90c0d8";
+
+      try {
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payloadCompleto)
+        });
+
+        console.log(`✅ Payload enviado com sucesso. Status: ${response.status}`);
+
+        res.json({
+          message: "Notification sent successfully",
+          success: response.ok,
+          status: response.status,
+          gruposNotificados: payloadGrupos.length
+        });
+      } catch (error) {
+        console.error(`❌ Erro ao enviar payload para webhook:`, error);
+        res.status(500).json({
+          message: "Failed to send notification",
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    } catch (error) {
+      console.error("❌ Erro completo em notify-groups:", {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      res.status(500).json({ 
+        message: "Failed to notify groups",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

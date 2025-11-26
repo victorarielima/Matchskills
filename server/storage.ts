@@ -460,6 +460,21 @@ export class DatabaseStorage implements IStorage {
 
   async getGroupMembers(divisionId: string): Promise<any[]> {
     try {
+      console.log("🔍 getGroupMembers: Buscando membros para divisionId:", divisionId);
+      
+      // First, let's check if we have any group members at all
+      const allGroupMembers = await db.select().from(groupMembers).where(eq(groupMembers.divisionId, divisionId));
+      console.log("🔍 Total de group_members encontrados:", allGroupMembers.length);
+      console.log("🔍 Group members bruto:", JSON.stringify(allGroupMembers, null, 2));
+
+      // Now check formResponses
+      if (allGroupMembers.length > 0) {
+        const firstFormResponseId = allGroupMembers[0].formResponseId;
+        console.log("🔍 Testando query de formResponses com ID:", firstFormResponseId);
+        const testFormResponse = await db.select().from(formResponses).where(eq(formResponses.id, firstFormResponseId));
+        console.log("🔍 FormResponse encontrada:", JSON.stringify(testFormResponse, null, 2));
+      }
+      
       const result = await db
         .select({
           groupNumber: groupMembers.groupNumber,
@@ -477,39 +492,30 @@ export class DatabaseStorage implements IStorage {
         .where(eq(groupMembers.divisionId, divisionId))
         .orderBy(groupMembers.groupNumber, formResponses.studentName);
 
-      // Group by groupNumber
-      const groups: Record<number, any> = {};
-      for (const row of result) {
-        if (!groups[row.groupNumber]) {
-          groups[row.groupNumber] = {
-            groupNumber: row.groupNumber,
-            members: [],
-            leaderId: undefined
-          };
-        }
-        
-        // Create full FormResponse object
-        const member = {
-          id: row.formResponseId,
-          studentName: row.studentName,
-          studentEmail: row.studentEmail,
-          responses: row.responses,
-          submittedAt: row.submittedAt,
-          isLeader: row.isLeader,
-          strengths: row.strengths || [], // Incluir pontos fortes
-          attention: row.attention || [] // Incluir pontos de atenção
-        };
-        
-        // Se este membro é líder, armazenar seu ID no grupo
-        if (row.isLeader) {
-          groups[row.groupNumber].leaderId = row.formResponseId;
-        }
-        
-        groups[row.groupNumber].members.push(member);
+      console.log("🔍 getGroupMembers: Resultado bruto:", result.length, "registros encontrados");
+      if (result.length > 0) {
+        console.log("🔍 Primeiro registro:", JSON.stringify(result[0], null, 2));
       }
 
-      console.log('📊 Groups found for division:', divisionId, Object.values(groups));
-      return Object.values(groups);
+      // Return flat array with all needed data for notifications
+      const flatArray = result.map(row => ({
+        groupNumber: row.groupNumber,
+        formResponseId: row.formResponseId,
+        isLeader: row.isLeader,
+        strengths: row.strengths,
+        attention: row.attention,
+        studentName: row.studentName,
+        studentEmail: row.studentEmail,
+        responses: row.responses,
+        submittedAt: row.submittedAt
+      }));
+
+      console.log("🔍 getGroupMembers: Retornando array plano com", flatArray.length, "membros");
+      if (flatArray.length > 0) {
+        console.log("🔍 Exemplo de membro:", flatArray[0]);
+      }
+
+      return flatArray;
     } catch (error) {
       console.error('Error getting group members:', error);
       return [];
