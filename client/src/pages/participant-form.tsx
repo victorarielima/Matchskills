@@ -62,12 +62,15 @@ export default function ParticipantForm() {
     queryFn: async () => {
       try {
         const response = await apiRequest("GET", `/api/class/${code}/response-count`);
-        return response?.count || 0;
-      } catch {
+        const data = await response.json();
+        return data.count || 0;
+      } catch (error) {
+        console.error("Erro ao buscar contagem de respostas:", error);
         return 0;
       }
     },
-    refetchInterval: 5000, // Refetch every 5 seconds
+    refetchInterval: false, // Não fazer refetch automático
+    staleTime: 60000, // Cache por 1 minuto
   });
 
   const form = useForm<SubmitFormData>({
@@ -147,7 +150,8 @@ export default function ParticipantForm() {
         responsesKeys: Object.keys(submissionData.responses)
       });
       
-      return await apiRequest("POST", `/api/class/${code}/submit`, submissionData);
+      const response = await apiRequest("POST", `/api/class/${code}/submit`, submissionData);
+      return await response.json();
     },
     onSuccess: () => {
       toast({

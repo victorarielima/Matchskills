@@ -376,18 +376,32 @@ export function registerRoutes(app: Express): Server {
    */
   app.get('/api/class/:code/response-count', async (req, res) => {
     try {
+      console.log("📊 GET /api/class/:code/response-count");
       const { code } = req.params;
+      console.log("Code:", code);
+      
       const classData = await storage.getClassByCode(code);
+      console.log("Class data encontrada:", !!classData);
       
       if (!classData) {
+        console.log("❌ Class não encontrada");
         return res.status(404).json({ message: "Class not found" });
       }
 
-      const responses = await storage.getFormResponses(classData.id);
+      console.log("Buscando respostas para classId:", classData.id);
+      const responses = await storage.getClassResponses(classData.id);
+      console.log("✅ Respostas encontradas:", responses.length);
+      
       res.json({ count: responses.length });
     } catch (error) {
-      console.error("Error fetching response count:", error);
-      res.status(500).json({ message: "Failed to fetch response count" });
+      console.error("❌ Erro em /api/class/:code/response-count:", {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      res.status(500).json({ 
+        message: "Failed to fetch response count",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
@@ -398,60 +412,98 @@ export function registerRoutes(app: Express): Server {
    */
   app.post('/api/class/:code/submit', async (req, res) => {
     try {
+      console.log("📨 Requisição POST recebida em /api/class/:code/submit");
+      console.log("Body type:", typeof req.body);
+      console.log("Body:", JSON.stringify(req.body, null, 2));
+      console.log("Responses type:", typeof req.body.responses);
+      console.log("Responses value:", req.body.responses);
+      
       const { code } = req.params;
       const classData = await storage.getClassByCode(code);
       
       if (!classData) {
+        console.log("❌ Classe não encontrada com código:", code);
         return res.status(404).json({ message: "Class not found" });
       }
 
       if (!classData.isActive) {
+        console.log("❌ Classe inativa:", classData.id);
         return res.status(400).json({ message: "This class is currently closed" });
       }
 
       // Check if class has reached the student limit
-      const responses = await storage.getFormResponses(classData.id);
+      const responses = await storage.getClassResponses(classData.id);
       if (responses.length >= classData.studentLimit) {
+        console.log("❌ Limite de respostas atingido para classe:", classData.id);
         return res.status(400).json({ 
           message: "Esta turma atingiu o limite máximo de respostas." 
         });
       }
 
       const responsesObj = req.body.responses || {};
-      const responsesEntries = Object.entries(responsesObj).slice(0, 3);
+      
+      // Tentar converter se for string
+      let responsesData = responsesObj;
+      if (typeof responsesObj === 'string') {
+        console.log("⚠️ Responses é string, convertendo para objeto...");
+        responsesData = JSON.parse(responsesObj);
+      }
+      
+      const responsesEntries = Object.entries(responsesData).slice(0, 3);
       
       console.log("📝 Dados recebidos do formulário:", {
         studentName: req.body.studentName,
         studentEmail: req.body.studentEmail,
-        totalRespostas: Object.keys(responsesObj).length,
+        totalRespostas: Object.keys(responsesData).length,
         primeirasTresRespostas: responsesEntries.map(([key, val]) => ({ key, val: String(val).substring(0, 50) }))
       });
 
-      const responseData = insertFormResponseSchema.parse({
-        ...req.body,
-        classId: classData.id,
+      // Log antes da validação
+      console.log("🔍 Tentando validar com schema:", {
+        hasStudentName: !!req.body.studentName,
+        hasResponses: !!responsesData,
+        responsesType: typeof responsesData,
+        responsesIsObject: responsesData && typeof responsesData === 'object',
+        responsesKeys: Object.keys(responsesData)
       });
 
-      console.log("✅ Após validação schema:", {
+      const dataToValidate = {
+        studentName: req.body.studentName,
+        studentEmail: req.body.studentEmail || null,
+        responses: responsesData,
+        classId: classData.id,
+      };
+
+      console.log("🔐 Dados para validação:", JSON.stringify(dataToValidate, null, 2));
+
+      const responseData = insertFormResponseSchema.parse(dataToValidate);
+
+      console.log("✅ Validação passou! Dados:", {
         classId: responseData.classId,
-        totalRespostas: Object.keys(responseData.responses || {}).length,
-        primeirasTresRespostas: Object.entries(responseData.responses || {}).slice(0, 3).map(([key, val]) => ({ key, val: String(val).substring(0, 50) }))
+        studentName: responseData.studentName,
+        studentEmail: responseData.studentEmail,
+        responsesKeys: Object.keys((responseData.responses as any) || {})
       });
 
       const response = await storage.submitFormResponse(responseData);
       
-      console.log("💾 Resposta salva no banco:", {
+      console.log("💾 Resposta salva com sucesso:", {
         id: response[0]?.id,
         classId: response[0]?.classId,
-        studentName: response[0]?.studentName,
-        totalRespostas: Object.keys(response[0]?.responses || {}).length,
-        primeirasTresRespostas: Object.entries(response[0]?.responses || {}).slice(0, 3).map(([key, val]) => ({ key, val: String(val).substring(0, 50) }))
+        studentName: response[0]?.studentName
       });
       
       res.json(response);
     } catch (error) {
-      console.error("Error submitting response:", error);
-      res.status(500).json({ message: "Failed to submit response" });
+      console.error("❌ Erro completo ao submeter resposta:", {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        cause: error instanceof Error && 'cause' in error ? (error as any).cause : undefined
+      });
+      res.status(500).json({ 
+        message: "Failed to submit response",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
